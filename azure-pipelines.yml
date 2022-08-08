@@ -1,0 +1,25 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+variables: # pipeline-level
+  branch: 'main'
+
+
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- script: |
+    # git remote add github https://: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@github.com/zy97/Tauri-Qiniu-App.git
+    # git checkout -b $(branch)
+    # git push -u github $(branch)
+    git remote add origin https://github.com/zy97/Tauri-Qiniu-App.git
+    git branch -M 'main'
+    git push -u origin 'main'
+
+  displayName: 'Run a one-line script'
