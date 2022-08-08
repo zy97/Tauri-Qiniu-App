@@ -2,6 +2,7 @@
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
 )]
+extern crate humansize;
 mod commands;
 mod models;
 use commands::qn_command::test;
