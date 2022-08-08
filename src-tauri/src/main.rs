@@ -4,10 +4,10 @@
 )]
 mod commands;
 mod models;
-// use commands::QnCommand::test;
+use commands::qn_command::test;
 fn main() {
     tauri::Builder::default()
-        // .invoke_handler(tauri::generate_handler![test])
+        .invoke_handler(tauri::generate_handler![test])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

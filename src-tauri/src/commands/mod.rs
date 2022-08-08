@@ -1,1 +1,1 @@
-pub mod QnCommand;
+pub mod qn_command;

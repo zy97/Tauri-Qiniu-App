@@ -30,7 +30,7 @@ qiniu-sdk = { version = "0.1.3", features = [
     "http",
     "http-client",
     "upload",
-], optional = true }
+] }
 futures = "0.3.21"
 [features]
 # by default Tauri runs in production mode
