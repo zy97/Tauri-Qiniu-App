@@ -4,6 +4,7 @@ import init, { greet } from '@mywasm/foo'
 import { Button, Card, List, message, Table } from 'antd';
 import { invoke } from '@tauri-apps/api';
 import VirtualList from 'rc-virtual-list';
+import styles from "./App.module.less";
 interface File {
   hash: string;
   key: string;
@@ -15,11 +16,14 @@ const fakeDataUrl =
   'https://randomuser.me/api/?results=20&inc=name,gender,email,nat,picture&noinfo';
 const ContainerHeight = 600;
 function App() {
+  // //初始化，加载 wasm 文件
+  // init().then(() => {
+  //   greet();
+  // }).catch(console.error);
+  // //调用 greet 方法，必须保证 init 方法执行完成之后，才可以调用，否则会报错
   useEffect(() => {
-    //初始化，加载 wasm 文件
-    init();
-    //调用 greet 方法，必须保证 init 方法执行完成之后，才可以调用，否则会报错
-    // greet();
+
+
     invoke<any>("test").then((res) => {
       console.log(res);
 
@@ -44,19 +48,7 @@ function App() {
 
   };
   return (
-    <div className='mx-auto h-screen'>
-      {/* <List
-        dataSource={data}
-        renderItem={item => (
-          <List.Item>
-            <Card hoverable className='mx-1.5'
-              style={{ width: 30 }} cover={<img src='../src/assets/excel.svg'></img>}>
-              <div title={item.key} className='overflow-hidden overflow-ellipsis whitespace-nowrap'>{item.key}</div>
-              <div >{item.size}</div>
-            </Card>
-          </List.Item>
-        )}
-      /> */}
+    <div className={styles.container}>
       <List>
         <VirtualList
           data={data}
@@ -68,7 +60,7 @@ function App() {
           {(item: File) => (
             <List.Item key={item.key}>
               <List.Item.Meta
-                avatar={<img src='../src/assets/excel.svg' className='h-8'></img>}
+                avatar={<img src='../src/assets/excel.svg' className={styles.avatar}></img>}
                 title={<a href="https://ant.design">{item.key}</a>}
                 description={item.mime_type}
               />
