@@ -1,4 +1,4 @@
-name = "rsw"
+name = "mywasm"
 version = "0.1.0"
 
 #! time interval for file changes to trigger wasm-pack build, default `50` milliseconds
