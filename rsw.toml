@@ -40,7 +40,7 @@ using = "rsw"
 
 [[crates]]
 name = "@mywasm/foo"
-link = false
+link = true
 
 # [[crates]]
 #! =======================================================
