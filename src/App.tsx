@@ -9,6 +9,7 @@ interface File {
   key: string;
   mime_type: string;
   size: number;
+  marker: string;
 }
 const fakeDataUrl =
   'https://randomuser.me/api/?results=20&inc=name,gender,email,nat,picture&noinfo';
@@ -20,6 +21,8 @@ function App() {
     //调用 greet 方法，必须保证 init 方法执行完成之后，才可以调用，否则会报错
     // greet();
     invoke<any>("test").then((res) => {
+      console.log(res);
+
       setData(res);
 
     });
@@ -31,9 +34,11 @@ function App() {
     }
   };
   const appendData = () => {
-    invoke<any>("test").then((res) => {
+    let marker = data[data.length - 1].marker;
+    invoke<any>("test", { marker }).then((res) => {
       setData(res);
       setData(data.concat(res));
+      console.log(res);
       message.success(`${res.length} more items loaded!`);
     });
 

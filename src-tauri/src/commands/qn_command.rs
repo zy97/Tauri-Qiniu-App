@@ -4,14 +4,11 @@ use crate::models::qn_file::QnFile;
 use futures::stream::TryStreamExt;
 use humansize::file_size_opts as options;
 use humansize::FileSize;
-use qiniu_sdk::http_client::BucketRegionsQueryer;
-use qiniu_sdk::http_client::HttpClient;
-use qiniu_sdk::http_client::RegionsProviderEndpoints;
-use qiniu_sdk::http_client::ServiceName;
-use qiniu_sdk::objects::ListVersion;
 use qiniu_sdk::{credential::Credential, objects::ObjectsManager};
 #[tauri::command]
-pub async fn test() -> Vec<QnFile> {
+pub async fn test(marker: Option<String>) -> Vec<QnFile> {
+    println!("{:?}", marker);
+
     let mut files = vec![];
     let access_key = "mElDt3TjoRM7iL5qpeZ15U4R9RGy3SBEqNTinKar";
     let secret_key = "B5fcfvWOuQPZD0EKwVDvEfHk9FBcnRtgocxsMR1Q";
@@ -21,14 +18,11 @@ pub async fn test() -> Vec<QnFile> {
     let bucket = object_manager.bucket(bucket_name);
     let mut iter = bucket
         .list()
-        .limit(100)
-        .version(ListVersion::V1)
-        .need_parts()
-        .iter();
-    println!("1:{:?}", iter);
-    while let Some(entry) = iter.next() {
-        println!("{:?}", entry);
-        let entry = entry.unwrap();
+        .limit(10)
+        .marker(marker.unwrap_or("".to_owned()))
+        .stream();
+
+    while let Some(entry) = iter.try_next().await.unwrap() {
         files.push(QnFile {
             key: entry.get_key_as_str().into(),
             hash: entry.get_hash_as_str().into(),
@@ -38,6 +32,7 @@ pub async fn test() -> Vec<QnFile> {
                 .unwrap(),
             mime_type: entry.get_mime_type_as_str().into(),
             total_bytes: entry.get_size_as_u64(),
+            marker: iter.marker().map(|s| s.to_string()),
         });
     }
     files
