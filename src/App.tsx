@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import logo from './logo.svg'
-import init, { greet } from '@mywasm/foo'
 import { Button, Card, List, message, Table } from 'antd';
 import { invoke } from '@tauri-apps/api';
 import VirtualList from 'rc-virtual-list';
@@ -16,11 +15,7 @@ const fakeDataUrl =
   'https://randomuser.me/api/?results=20&inc=name,gender,email,nat,picture&noinfo';
 const ContainerHeight = 600;
 function App() {
-  //初始化，加载 wasm 文件
-  init().then(() => {
-    greet();
-  }).catch(console.error);
-  //调用 greet 方法，必须保证 init 方法执行完成之后，才可以调用，否则会报错
+
   useEffect(() => {
 
 

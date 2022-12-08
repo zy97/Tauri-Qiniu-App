@@ -11,14 +11,14 @@
     "rsw": "rsw"
   },
   "dependencies": {
-    "@tauri-apps/api": "^1.0.2",
+    "@tauri-apps/api": "^1.2.0",
     "antd": "^4.21.7",
     "rc-virtual-list": "^3.4.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^1.0.5",
+    "@tauri-apps/cli": "^1.2.1",
     "@types/react": "^18.0.15",
     "@types/react-dom": "^18.0.6",
     "@vitejs/plugin-react": "^2.0.0",
