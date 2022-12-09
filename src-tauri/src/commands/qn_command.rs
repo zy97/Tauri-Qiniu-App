@@ -6,8 +6,8 @@ use humansize::file_size_opts as options;
 use humansize::FileSize;
 use qiniu_sdk::{credential::Credential, objects::ObjectsManager};
 #[tauri::command]
-pub async fn test(marker: Option<String>) -> Vec<QnFile> {
-    println!("{:?}", marker);
+pub async fn test(marker: Option<String>, query: Option<String>) -> Vec<QnFile> {
+    println!("marker:{marker:?}, query:{query:?}");
 
     let mut files = vec![];
     let access_key = "mElDt3TjoRM7iL5qpeZ15U4R9RGy3SBEqNTinKar";
@@ -18,6 +18,7 @@ pub async fn test(marker: Option<String>) -> Vec<QnFile> {
     let bucket = object_manager.bucket(bucket_name);
     let mut iter = bucket
         .list()
+        .prefix(query.unwrap_or("".to_owned()))
         .limit(10)
         .marker(marker.unwrap_or("".to_owned()))
         .stream();
@@ -37,19 +38,3 @@ pub async fn test(marker: Option<String>) -> Vec<QnFile> {
     }
     files
 }
-// #[tauri::command]
-// pub async fn test1() -> Vec<QnFile> {
-//     let mut files = vec![];
-//     let access_key = "mElDt3TjoRM7iL5qpeZ15U4R9RGy3SBEqNTinKar";
-//     let secret_key = "B5fcfvWOuQPZD0EKwVDvEfHk9FBcnRtgocxsMR1Q";
-//     let bucket_name = "sc-download";
-//     let credential = Credential::new(access_key, secret_key);
-//     let response = HttpClient::default().async_get(
-//         &[ServiceName::Rsf],
-//         RegionsProviderEndpoints::new(
-//             BucketRegionsQueryer::new().query(credential.access_key().to_owned(), bucket_name),
-//         ),
-//     ).path(path)
-
-//     files
-// }

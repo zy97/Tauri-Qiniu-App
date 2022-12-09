@@ -55,12 +55,12 @@
     },
     "windows": [
       {
-        "transparent": true,
+        "transparent": false,
         "fullscreen": false,
-        "height": 600,
+        "height": 800,
         "resizable": true,
         "title": "Tauri Qiniu App",
-        "width": 800
+        "minWidth": 800
       }
     ]
   }
