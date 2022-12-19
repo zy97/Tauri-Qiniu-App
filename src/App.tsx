@@ -21,7 +21,7 @@ function App() {
   const containerRef = useRef(null);
   const containerSize = useSize(containerRef);
   const { data: searchResult, run: search } = useRequest(requestRustService, {
-    debounceWait: 1000,
+    debounceWait: 50,
     manual: true,
   });
   useEffect(() => {

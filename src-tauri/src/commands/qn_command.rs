@@ -1,10 +1,7 @@
-use std::vec;
-
 use crate::models::qn_file::QnFile;
-use futures::stream::TryStreamExt;
-use humansize::file_size_opts as options;
-use humansize::FileSize;
+use humansize::{format_size, DECIMAL};
 use qiniu_sdk::{credential::Credential, objects::ObjectsManager};
+use std::vec;
 #[tauri::command]
 pub async fn test(marker: Option<String>, query: Option<String>) -> Vec<QnFile> {
     println!("marker:{marker:?}, query:{query:?}");
@@ -21,20 +18,25 @@ pub async fn test(marker: Option<String>, query: Option<String>) -> Vec<QnFile> 
         .prefix(query.unwrap_or("".to_owned()))
         .limit(10)
         .marker(marker.unwrap_or("".to_owned()))
-        .stream();
+        .iter();
 
-    while let Some(entry) = iter.try_next().await.unwrap() {
+    while let Some(entry) = iter.next() {
+        let entry = entry.unwrap();
+        println!("777");
         files.push(QnFile {
             key: entry.get_key_as_str().into(),
             hash: entry.get_hash_as_str().into(),
-            size: entry
-                .get_size_as_u64()
-                .file_size(options::CONVENTIONAL)
-                .unwrap(),
+            size: format_size(entry.get_size_as_u64(), DECIMAL),
+            // size: entry
+            //     .get_size_as_u64()
+            //     .file_size(options::CONVENTIONAL)
+            //     .unwrap(),
             mime_type: entry.get_mime_type_as_str().into(),
             total_bytes: entry.get_size_as_u64(),
             marker: iter.marker().map(|s| s.to_string()),
         });
     }
+
+    println!("files");
     files
 }
