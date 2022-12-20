@@ -5,11 +5,13 @@
 extern crate humansize;
 mod commands;
 mod models;
-use commands::qn_command::test;
+use commands::qn_command::get_lists;
 use tauri::{
     generate_context, CustomMenuItem, Manager, RunEvent, SystemTray, SystemTrayEvent,
     SystemTrayMenu, SystemTrayMenuItem, WindowBuilder,
 };
+
+use crate::commands::qn_command::download;
 fn main() {
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
     let hide = CustomMenuItem::new("hide".to_string(), "Hide");
@@ -40,7 +42,7 @@ fn main() {
             },
             _ => {}
         })
-        .invoke_handler(tauri::generate_handler![test])
+        .invoke_handler(tauri::generate_handler![get_lists, download])
         .build(generate_context!())
         .expect("error while building tauri application")
         .run(|app, event| match event {

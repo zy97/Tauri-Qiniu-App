@@ -22,6 +22,7 @@ qiniu-sdk = { version = "0.2.1", features = [
     "objects",
     "reqwest",
     "credential",
+    "download",
 ] }
 humansize = "2.1.2"
 

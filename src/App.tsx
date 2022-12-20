@@ -5,13 +5,11 @@ import { invoke } from '@tauri-apps/api';
 import VirtualList from 'rc-virtual-list';
 import styles from "./App.module.less";
 import { useRequest, useSize } from 'ahooks';
-interface File {
-  hash: string;
-  key: string;
-  mime_type: string;
-  size: number;
-  marker: string;
-}
+import 'react-contexify/ReactContexify.css';
+import { Item, Menu, useContextMenu } from 'react-contexify';
+import { QnFile } from './models/File';
+
+const MENU_ID = 'contextMenu';
 const extractHeight = 40 + 21;
 const requestRustService = (cmd: string, args?: {} | undefined) => {
   console.log(cmd, args);
@@ -19,6 +17,17 @@ const requestRustService = (cmd: string, args?: {} | undefined) => {
 };
 function App() {
   const containerRef = useRef(null);
+  const { show } = useContextMenu({
+    id: MENU_ID,
+  });
+  const handleContextMenu = (event: any) => {
+    show({
+      event,
+      props: {
+        key: 'value'
+      }
+    })
+  }
   const containerSize = useSize(containerRef);
   const { data: searchResult, run: search } = useRequest(requestRustService, {
     debounceWait: 50,
@@ -32,16 +41,16 @@ function App() {
 
   const [searchTxt, setSearchTxt] = useState("");
   useEffect(() => {
-    requestRustService("test").then((res) => {
+    requestRustService("get_lists").then((res) => {
       console.log(res);
       setData(res);
     });
   }, []);
-  const [data, setData] = useState<File[]>([]);
+  const [data, setData] = useState<QnFile[]>([]);
   const onScroll = (e: React.UIEvent<HTMLElement, UIEvent>) => {
     if (e.currentTarget.scrollHeight - e.currentTarget.scrollTop === (containerSize?.height ?? 0) - extractHeight) {
       let marker = data[data.length - 1].marker;
-      requestRustService("test", { marker, query: searchTxt }).then((res) => {
+      requestRustService("get_lists", { marker, query: searchTxt }).then((res) => {
         setData(res);
         setData(data.concat(res));
         console.log(res);
@@ -54,14 +63,14 @@ function App() {
     if (txt !== searchTxt) {
       setData([]);
       setSearchTxt(e.target.value);
-      search("test", { query: txt });
+      search("get_lists", { query: txt });
     }
   };
   return (
-    <div className={styles.container} ref={containerRef}>
+    <div className={styles.container} ref={containerRef} >
 
       <Input className={styles.searchInput} size="large" placeholder="输入搜索的文件名字" prefix={<SearchOutlined />} onChange={searchQueryChanged} />
-      <List>
+      <div onContextMenu={handleContextMenu}><List >
         <VirtualList
           data={data}
           height={(containerSize?.height ?? 100) - extractHeight}
@@ -69,20 +78,25 @@ function App() {
           itemKey="key"
           onScroll={onScroll}
         >
-          {(item: File) => (
+          {(item: QnFile) => (
             <List.Item key={item.key}>
               <List.Item.Meta
                 avatar={<img src={`../src/assets/${FileType(item.mime_type)}.svg`} className={styles.avatar}></img>}
-                title={<a href="https://ant.design">{item.key}</a>}
-                description={item.mime_type}
+                title={<a onClick={() => { requestRustService("download", { "objectName": item.key }) }}>{item.key}</a>}
+                description={`${item.mime_type}--(${item.size})`}
               />
               <div>Content</div>
             </List.Item>
           )}
         </VirtualList>
 
-      </List>
+      </List></div>
+
       <p className={styles.footer}>总共加载：{data.length}项</p>
+      <Menu id={MENU_ID}>
+        <Item id="copy">预览</Item>
+        <Item id="cut" >下载</Item>
+      </Menu>
     </div >
   )
 }
