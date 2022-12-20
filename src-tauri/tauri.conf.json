@@ -62,6 +62,9 @@
         "title": "Tauri Qiniu App",
         "minWidth": 800
       }
-    ]
+    ],
+    "systemTray": {
+      "iconPath": "icons/icon.ico"
+    }
   }
 }
