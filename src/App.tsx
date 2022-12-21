@@ -8,13 +8,10 @@ import { useRequest, useSize } from 'ahooks';
 import 'react-contexify/ReactContexify.css';
 import { Item, Menu, useContextMenu } from 'react-contexify';
 import { QnFile } from './models/File';
+import { QiNiuApi } from './apis';
 
 const MENU_ID = 'contextMenu';
 const extractHeight = 40 + 21;
-const requestRustService = (cmd: string, args?: {} | undefined) => {
-  console.log(cmd, args);
-  return invoke<any>(cmd, args);
-};
 function App() {
   const containerRef = useRef(null);
   const { show } = useContextMenu({
@@ -29,7 +26,7 @@ function App() {
     })
   }
   const containerSize = useSize(containerRef);
-  const { data: searchResult, run: search } = useRequest(requestRustService, {
+  const { data: searchResult, run: search } = useRequest(QiNiuApi.getLists, {
     debounceWait: 50,
     manual: true,
   });
@@ -41,7 +38,7 @@ function App() {
 
   const [searchTxt, setSearchTxt] = useState("");
   useEffect(() => {
-    requestRustService("get_lists").then((res) => {
+    QiNiuApi.getLists().then((res) => {
       console.log(res);
       setData(res);
     });
@@ -50,7 +47,7 @@ function App() {
   const onScroll = (e: React.UIEvent<HTMLElement, UIEvent>) => {
     if (e.currentTarget.scrollHeight - e.currentTarget.scrollTop === (containerSize?.height ?? 0) - extractHeight) {
       let marker = data[data.length - 1].marker;
-      requestRustService("get_lists", { marker, query: searchTxt }).then((res) => {
+      QiNiuApi.getLists({ marker, query: searchTxt }).then((res) => {
         setData(res);
         setData(data.concat(res));
         console.log(res);
@@ -63,34 +60,37 @@ function App() {
     if (txt !== searchTxt) {
       setData([]);
       setSearchTxt(e.target.value);
-      search("get_lists", { query: txt });
+      search({ query: txt });
     }
   };
+
+
   return (
     <div className={styles.container} ref={containerRef} >
 
       <Input className={styles.searchInput} size="large" placeholder="输入搜索的文件名字" prefix={<SearchOutlined />} onChange={searchQueryChanged} />
-      <div onContextMenu={handleContextMenu}><List >
-        <VirtualList
-          data={data}
-          height={(containerSize?.height ?? 100) - extractHeight}
-          itemHeight={44}
-          itemKey="key"
-          onScroll={onScroll}
-        >
-          {(item: QnFile) => (
-            <List.Item key={item.key}>
-              <List.Item.Meta
-                avatar={<img src={`../src/assets/${FileType(item.mime_type)}.svg`} className={styles.avatar}></img>}
-                title={<a onClick={() => { requestRustService("download", { "objectName": item.key }) }}>{item.key}</a>}
-                description={`${item.mime_type}--(${item.size})`}
-              />
-              <div>Content</div>
-            </List.Item>
-          )}
-        </VirtualList>
+      <div onContextMenu={handleContextMenu}>
+        <List size='small'>
+          <VirtualList
+            data={data}
+            height={(containerSize?.height ?? 100) - extractHeight}
+            itemHeight={22}
+            itemKey="key"
+            onScroll={onScroll}
+          >
+            {(item: QnFile) => (
+              <List.Item key={item.key}>
+                <List.Item.Meta
+                  avatar={<img src={`../src/assets/${FileType(item.mime_type)}.svg`} className={styles.avatar}></img>}
+                  title={<a onClick={() => { QiNiuApi.downloadFile(item) }}>{item.key}</a>}
+                  description={`${item.mime_type}--(${item.size})`}
+                />
+                <div></div>
+              </List.Item>
+            )}
+          </VirtualList>
 
-      </List></div>
+        </List></div>
 
       <p className={styles.footer}>总共加载：{data.length}项</p>
       <Menu id={MENU_ID}>

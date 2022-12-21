@@ -1,22 +1,24 @@
-use crate::models::qn_file::QnFile;
+use crate::{error::TauriError, models::qn_file::QnFile};
 use humansize::{format_size, DECIMAL};
 use qiniu_sdk::{
     credential::Credential,
     download::{DownloadManager, StaticDomainsUrlsGenerator},
     objects::ObjectsManager,
 };
+use tauri::AppHandle;
+const ACCESS_KEY: &str = "mElDt3TjoRM7iL5qpeZ15U4R9RGy3SBEqNTinKar";
+const SECRET_KEY: &str = "B5fcfvWOuQPZD0EKwVDvEfHk9FBcnRtgocxsMR1Q";
+const BUCKET_NAME: &str = "sc-download";
+const DOMAIN: &str = "download.yucunkeji.com";
 use std::vec;
 #[tauri::command]
-pub async fn get_lists(marker: Option<String>, query: Option<String>) -> Vec<QnFile> {
+pub fn get_lists(marker: Option<String>, query: Option<String>) -> Result<Vec<QnFile>, TauriError> {
     println!("marker:{marker:?}, query:{query:?}");
 
     let mut files = vec![];
-    let access_key = "mElDt3TjoRM7iL5qpeZ15U4R9RGy3SBEqNTinKar";
-    let secret_key = "B5fcfvWOuQPZD0EKwVDvEfHk9FBcnRtgocxsMR1Q";
-    let bucket_name = "sc-download";
-    let credential = Credential::new(access_key, secret_key);
+    let credential = Credential::new(ACCESS_KEY, SECRET_KEY);
     let object_manager = ObjectsManager::new(credential);
-    let bucket = object_manager.bucket(bucket_name);
+    let bucket = object_manager.bucket(BUCKET_NAME);
     let mut iter = bucket
         .list()
         .prefix(query.unwrap_or("".to_owned()))
@@ -25,7 +27,7 @@ pub async fn get_lists(marker: Option<String>, query: Option<String>) -> Vec<QnF
         .iter();
 
     while let Some(entry) = iter.next() {
-        let entry = entry.unwrap();
+        let entry = entry?;
         files.push(QnFile {
             key: entry.get_key_as_str().into(),
             hash: entry.get_hash_as_str().into(),
@@ -34,22 +36,28 @@ pub async fn get_lists(marker: Option<String>, query: Option<String>) -> Vec<QnF
             marker: iter.marker().map(|s| s.to_string()),
         });
     }
-    files
+    Ok(files)
 }
 
 #[tauri::command]
-pub async fn download(object_name: String) {
-    println!("{}", object_name);
-    let domain = "download.yucunkeji.com";
+pub async fn download(file_info: QnFile, app_handle: AppHandle) -> Result<String, TauriError> {
+    let app_dir = app_handle.path_resolver().app_cache_dir().unwrap();
+    let mime = mime_guess::get_mime_extensions_str(&file_info.mime_type);
+    println!("mime:{:?}", mime);
+    let file_path = app_dir.join(file_info.hash.clone());
+
+    if file_path.exists() {
+        println!("缓存文件夹已存在: {}", file_path.display());
+        return Ok(file_path.display().to_string());
+    }
+
     let download_manager = DownloadManager::new(
-        StaticDomainsUrlsGenerator::builder(domain)
-            .use_https(false) // 设置为 HTTP 协议
+        StaticDomainsUrlsGenerator::builder(DOMAIN)
+            .use_https(true) // 设置为 HTTP 协议
             .build(),
     );
-    let mut buf = vec![];
     download_manager
-        .download(object_name)
-        .unwrap()
+        .download(file_info.key)?
         .on_download_progress(|e| {
             println!(
                 "已下载：{}/{}",
@@ -58,7 +66,8 @@ pub async fn download(object_name: String) {
             );
             Ok(())
         })
-        .to_writer(&mut buf)
+        .to_path(&file_path)
         .unwrap();
-    println!("下载完成");
+    println!("下载完成: {}", file_path.display());
+    Ok(file_path.display().to_string())
 }

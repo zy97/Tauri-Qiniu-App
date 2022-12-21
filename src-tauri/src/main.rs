@@ -10,6 +10,7 @@ use tauri::{
     generate_context, CustomMenuItem, Manager, RunEvent, SystemTray, SystemTrayEvent,
     SystemTrayMenu, SystemTrayMenuItem, WindowBuilder,
 };
+mod error;
 
 use crate::commands::qn_command::download;
 fn main() {
