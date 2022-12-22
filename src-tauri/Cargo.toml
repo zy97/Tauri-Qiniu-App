@@ -26,7 +26,7 @@ qiniu-sdk = { version = "0.2.1", features = [
 ] }
 humansize = "2.1.2"
 thiserror = "1.0.38"
-mime_guess = "2.0.4"
+base64 = "0.20.0"
 [features]
 # by default Tauri runs in production mode
 # when `tauri dev` runs it is executed with `cargo run --no-default-features` if `devPath` is an URL

@@ -10,7 +10,10 @@ const ACCESS_KEY: &str = "mElDt3TjoRM7iL5qpeZ15U4R9RGy3SBEqNTinKar";
 const SECRET_KEY: &str = "B5fcfvWOuQPZD0EKwVDvEfHk9FBcnRtgocxsMR1Q";
 const BUCKET_NAME: &str = "sc-download";
 const DOMAIN: &str = "download.yucunkeji.com";
-use std::vec;
+use std::{
+    path::{self, Path},
+    vec,
+};
 #[tauri::command]
 pub fn get_lists(marker: Option<String>, query: Option<String>) -> Result<Vec<QnFile>, TauriError> {
     println!("marker:{marker:?}, query:{query:?}");
@@ -42,10 +45,15 @@ pub fn get_lists(marker: Option<String>, query: Option<String>) -> Result<Vec<Qn
 #[tauri::command]
 pub async fn download(file_info: QnFile, app_handle: AppHandle) -> Result<String, TauriError> {
     let app_dir = app_handle.path_resolver().app_cache_dir().unwrap();
-    let mime = mime_guess::get_mime_extensions_str(&file_info.mime_type);
-    println!("mime:{:?}", mime);
-    let file_path = app_dir.join(file_info.hash.clone());
+    let mut hash_file_name = file_info.hash;
+    let extension_name = file_info.key.rfind('.');
+    if let Some(index) = extension_name {
+        let base64 = base64::encode(&file_info.key[..index]);
+        hash_file_name += &base64;
+        hash_file_name += &file_info.key[index..];
+    }
 
+    let file_path = app_dir.join(hash_file_name);
     if file_path.exists() {
         println!("缓存文件夹已存在: {}", file_path.display());
         return Ok(file_path.display().to_string());

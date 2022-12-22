@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { SearchOutlined } from '@ant-design/icons';
-import { Input, List, message } from 'antd';
+import { Drawer, FloatButton, Input, List, message } from 'antd';
 import { invoke } from '@tauri-apps/api';
 import VirtualList from 'rc-virtual-list';
 import styles from "./App.module.less";
@@ -9,11 +9,17 @@ import 'react-contexify/ReactContexify.css';
 import { Item, Menu, useContextMenu } from 'react-contexify';
 import { QnFile } from './models/File';
 import { QiNiuApi } from './apis';
-
+import { DownloadOutlined } from '@ant-design/icons';
+import DownloadPanel from './components/DownloadPanel';
 const MENU_ID = 'contextMenu';
-const extractHeight = 40 + 21;
 function App() {
+
   const containerRef = useRef(null);
+  const footerRef = useRef(null);
+  const footerSize = useSize(footerRef);
+  const extractHeight = 40 + (footerSize?.height ?? 0);
+
+  const [open, setOpen] = useState(false);
   const { show } = useContextMenu({
     id: MENU_ID,
   });
@@ -64,7 +70,13 @@ function App() {
     }
   };
 
+  const showDrawer = () => {
+    setOpen(true);
+  };
 
+  const onClose = () => {
+    setOpen(false);
+  };
   return (
     <div className={styles.container} ref={containerRef} >
 
@@ -90,13 +102,18 @@ function App() {
             )}
           </VirtualList>
 
-        </List></div>
+        </List>
+      </div>
 
-      <p className={styles.footer}>总共加载：{data.length}项</p>
+      <p className={styles.footer} ref={footerRef}>总共加载：{data.length}项</p>
       <Menu id={MENU_ID}>
         <Item id="copy">预览</Item>
         <Item id="cut" >下载</Item>
       </Menu>
+      <FloatButton icon={<DownloadOutlined />} type="primary" onClick={showDrawer} />
+      <Drawer title="下载" placement="right" onClose={onClose} open={open}>
+        <DownloadPanel />
+      </Drawer>
     </div >
   )
 }
