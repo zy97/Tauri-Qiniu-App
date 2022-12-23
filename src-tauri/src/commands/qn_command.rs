@@ -140,3 +140,6 @@ pub fn get_download_files(app_handle: AppHandle) -> Result<Vec<LocalFile>, Tauri
 
     Ok(local_files)
 }
+fn test() {
+    let conn = rusqlite::Connection::().unwrap();
+}
