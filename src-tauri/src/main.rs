@@ -12,7 +12,7 @@ use tauri::{
 };
 mod error;
 
-use crate::commands::qn_command::download;
+use crate::commands::qn_command::{download, get_download_files};
 fn main() {
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
     let hide = CustomMenuItem::new("hide".to_string(), "Hide");
@@ -43,7 +43,11 @@ fn main() {
             },
             _ => {}
         })
-        .invoke_handler(tauri::generate_handler![get_lists, download])
+        .invoke_handler(tauri::generate_handler![
+            get_lists,
+            download,
+            get_download_files
+        ])
         .build(generate_context!())
         .expect("error while building tauri application")
         .run(|app, event| match event {

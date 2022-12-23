@@ -5,3 +5,8 @@ export interface QnFile {
     size: number;
     marker: string;
 }
+export interface LocalFile {
+    name: string,
+    path: string,
+    mime: string,
+}

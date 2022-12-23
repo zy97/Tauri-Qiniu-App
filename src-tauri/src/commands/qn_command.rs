@@ -1,5 +1,9 @@
-use crate::{error::TauriError, models::qn_file::QnFile};
+use crate::{
+    error::TauriError,
+    models::qn_file::{LocalFile, QnFile},
+};
 use humansize::{format_size, DECIMAL};
+use infer::Type;
 use qiniu_sdk::{
     credential::Credential,
     download::{DownloadManager, StaticDomainsUrlsGenerator},
@@ -11,12 +15,16 @@ const SECRET_KEY: &str = "B5fcfvWOuQPZD0EKwVDvEfHk9FBcnRtgocxsMR1Q";
 const BUCKET_NAME: &str = "sc-download";
 const DOMAIN: &str = "download.yucunkeji.com";
 use std::{
-    path::{self, Path},
+    path::{self},
     vec,
 };
 #[tauri::command]
-pub fn get_lists(marker: Option<String>, query: Option<String>) -> Result<Vec<QnFile>, TauriError> {
-    println!("marker:{marker:?}, query:{query:?}");
+pub fn get_lists(
+    marker: Option<String>,
+    query: Option<String>,
+    page_size: Option<usize>,
+) -> Result<Vec<QnFile>, TauriError> {
+    println!("marker:{marker:?}, query:{query:?}, page_size:{page_size:?}");
 
     let mut files = vec![];
     let credential = Credential::new(ACCESS_KEY, SECRET_KEY);
@@ -25,7 +33,7 @@ pub fn get_lists(marker: Option<String>, query: Option<String>) -> Result<Vec<Qn
     let mut iter = bucket
         .list()
         .prefix(query.unwrap_or("".to_owned()))
-        .limit(10)
+        .limit(page_size.unwrap_or(10))
         .marker(marker.unwrap_or("".to_owned()))
         .iter();
 
@@ -45,14 +53,19 @@ pub fn get_lists(marker: Option<String>, query: Option<String>) -> Result<Vec<Qn
 #[tauri::command]
 pub async fn download(file_info: QnFile, app_handle: AppHandle) -> Result<String, TauriError> {
     let app_dir = app_handle.path_resolver().app_cache_dir().unwrap();
-    let mut hash_file_name = file_info.hash;
+    let mut hash_file_name = String::new();
     let extension_name = file_info.key.rfind('.');
-    if let Some(index) = extension_name {
-        let base64 = base64::encode(&file_info.key[..index]);
-        hash_file_name += &base64;
-        hash_file_name += &file_info.key[index..];
-    }
 
+    match extension_name {
+        Some(index) => {
+            let base64 = base64::encode(&file_info.key[..index]);
+            hash_file_name += &base64;
+            hash_file_name += &file_info.key[index..];
+        }
+        None => {
+            hash_file_name += &base64::encode(&file_info.key);
+        }
+    }
     let file_path = app_dir.join(hash_file_name);
     if file_path.exists() {
         println!("缓存文件夹已存在: {}", file_path.display());
@@ -78,4 +91,52 @@ pub async fn download(file_info: QnFile, app_handle: AppHandle) -> Result<String
         .unwrap();
     println!("下载完成: {}", file_path.display());
     Ok(file_path.display().to_string())
+}
+
+#[tauri::command]
+pub fn get_download_files(app_handle: AppHandle) -> Result<Vec<LocalFile>, TauriError> {
+    let app_dir = app_handle.path_resolver().app_cache_dir().unwrap();
+
+    let mut local_files = vec![];
+    for entry in path::Path::new(&app_dir).read_dir()? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_file() {
+            let mut key = String::new();
+            let file_name = path.file_name().unwrap().to_str().unwrap();
+            let extension_name = file_name.rfind('.');
+
+            let mime = mime_guess::from_path(&path)
+                .first_or_octet_stream()
+                .to_string();
+            match extension_name {
+                Some(index) => local_files.push(LocalFile {
+                    name: format!(
+                        "{}{}",
+                        base64::decode(&file_name[..index])
+                            .unwrap()
+                            .into_iter()
+                            .map(|c| c as char)
+                            .collect::<String>(),
+                        &file_name[index..]
+                    ),
+                    path,
+                    mime,
+                }),
+                None => {
+                    local_files.push(LocalFile {
+                        name: base64::decode(file_name)
+                            .unwrap()
+                            .into_iter()
+                            .map(|c| c as char)
+                            .collect::<String>(),
+                        path,
+                        mime,
+                    });
+                }
+            }
+        }
+    }
+
+    Ok(local_files)
 }
