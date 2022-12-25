@@ -4,15 +4,15 @@
 )]
 extern crate humansize;
 mod commands;
-mod models;
 use commands::qn_command::get_lists;
 use tauri::{
     generate_context, CustomMenuItem, Manager, RunEvent, SystemTray, SystemTrayEvent,
     SystemTrayMenu, SystemTrayMenuItem, WindowBuilder,
 };
 mod error;
-
 use crate::commands::qn_command::{download, get_download_files};
+pub mod models;
+pub mod schema;
 fn main() {
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
     let hide = CustomMenuItem::new("hide".to_string(), "Hide");
