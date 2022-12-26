@@ -1,19 +1,16 @@
 use app::{models::download::Download, *};
-use diesel::{QueryDsl, RunQueryDsl, SqliteExpressionMethods};
+use diesel::*;
 
 fn main() {
     use self::schema::downloads::dsl::*;
     let connection = &mut establish_connection();
     let results = downloads
-        // .filter(hash.is("other"))
         .limit(5)
         .load::<Download>(connection)
         .expect("Error loading posts");
 
     println!("Displaying {} downloads", results.len());
-    for download in results {
-        println!("{}", download.hash);
-        println!("-----------\n");
-        println!("{}", download.key);
-    }
+
+    let download = create_download(connection, "key", "hash", 100, "mime_type");
+    println!("Download: {:?}", download);
 }
