@@ -33,24 +33,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "android_log-sys"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85965b6739a430150bdd138e2374a98af0c3ee0d030b3bb7fc3bddff58d0102e"
-
-[[package]]
-name = "android_logger"
-version = "0.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ec2333c185d826313162cee39d3fcc6a84ba08114a839bebf53b961e7e75773"
-dependencies = [
- "android_log-sys",
- "env_logger 0.7.1",
- "lazy_static",
- "log",
-]
-
-[[package]]
 name = "android_system_properties"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -129,28 +111,18 @@ dependencies = [
 
 [[package]]
 name = "attohttpc"
-version = "0.24.0"
+version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b85f766c20e6ae766956f7a2fcc4e0931e79a7e1f48b29132b5d647021114914"
+checksum = "1fcf00bc6d5abb29b5f97e3c61a90b6d3caa12f3faf897d4a3e3607c050a35a7"
 dependencies = [
  "flate2",
  "http",
  "log",
+ "native-tls",
  "serde",
  "serde_json",
  "serde_urlencoded",
  "url",
-]
-
-[[package]]
-name = "atty"
-version = "0.2.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9b39be18770d11421cdb1b9947a45dd3f37e93092cbf377614828a319d5fee8"
-dependencies = [
- "hermit-abi",
- "libc",
- "winapi",
 ]
 
 [[package]]
@@ -922,35 +894,12 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44533bbbb3bb3c1fa17d9f2e4e38bbbaf8396ba82193c4cb1b6445d711445d36"
-dependencies = [
- "log",
- "regex",
-]
-
-[[package]]
-name = "env_logger"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a19187fea3ac7e84da7dacf48de0c45d63c6a76f9490dae389aead16c243fce3"
 dependencies = [
  "log",
  "regex",
-]
-
-[[package]]
-name = "env_logger"
-version = "0.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a12e6657c4c97ebab115a42dcee77225f7f482cdd841cf7088c657a42e9e00e7"
-dependencies = [
- "atty",
- "humantime",
- "log",
- "regex",
- "termcolor",
 ]
 
 [[package]]
@@ -1550,12 +1499,6 @@ checksum = "4e682e2bd70ecbcce5209f11a992a4ba001fea8e60acf7860ce007629e6d2756"
 dependencies = [
  "libm",
 ]
-
-[[package]]
-name = "humantime"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
 name = "hyper"
@@ -2659,9 +2602,9 @@ dependencies = [
 
 [[package]]
 name = "qiniu-apis"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab125a29dd3969a1c9ec4d23ed51ca798403ba0255b1997f7aac0cb95797c120"
+checksum = "64f48269404735bf5f580f07214c667667069cf6e210a4e21622ad646847809a"
 dependencies = [
  "anyhow",
  "indexmap",
@@ -2674,9 +2617,9 @@ dependencies = [
 
 [[package]]
 name = "qiniu-credential"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cbb99bfab9402800af8ede75f2324f3d520a92190fb254046f68ee7b203357e"
+checksum = "3f47ef674ce530bf21cc888c13050c402ef6d47c61debe48c67405c8f4d49b1e"
 dependencies = [
  "assert-impl",
  "auto_impl",
@@ -2693,9 +2636,9 @@ dependencies = [
 
 [[package]]
 name = "qiniu-download-manager"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5743102b3d3a1fd098b14965e10fa4c2005b1a527cc68e915c6cea2d0a4c90d9"
+checksum = "e37dc2f54e4338664e7959f9ecda1516fbe8b339a3bd9f38b5b7fd7f152ea94d"
 dependencies = [
  "anyhow",
  "assert-impl",
@@ -2710,9 +2653,9 @@ dependencies = [
 
 [[package]]
 name = "qiniu-http"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "300ef697a1295e68218e708278b83291ecf93f3a2a44d32d720977e1889a474c"
+checksum = "58e8d01241c0d9719c9be3659a10e213abda5e1fcdeb7678d557a71bf3715bab"
 dependencies = [
  "anyhow",
  "assert-impl",
@@ -2726,9 +2669,9 @@ dependencies = [
 
 [[package]]
 name = "qiniu-http-client"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e04953e46504a16a1db80596e497176865e96dddb259bc0deb6d969e99d0f1a7"
+checksum = "7e22746d3bc6c11549fd46337f613b317e662690489e6d8c99cff72206a92193"
 dependencies = [
  "anyhow",
  "assert-impl",
@@ -2773,9 +2716,9 @@ dependencies = [
 
 [[package]]
 name = "qiniu-objects-manager"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1c0d2690f20ff866f567e69604a210fd386f8d580a2c1814b79cb00961bdb63"
+checksum = "9e11bf2a3af01e173f6ea2a5d96218a177ed2f00de7e2ab948004f59b9201b35"
 dependencies = [
  "anyhow",
  "assert-impl",
@@ -2794,9 +2737,9 @@ dependencies = [
 
 [[package]]
 name = "qiniu-reqwest"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19f79e57db041b725d874eed0f74016dc30cb4ea0e4d21f1f53f0aeb3800a77e"
+checksum = "803af5e930603fd7ecab0ac08f774ebd3878984eb631b4c549b0947548a3bbee"
 dependencies = [
  "anyhow",
  "qiniu-http",
@@ -2805,9 +2748,9 @@ dependencies = [
 
 [[package]]
 name = "qiniu-sdk"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90bb6559c0d657d768ca6748a7f3d94ff53810a5eced62055e1c56a0279cbf82"
+checksum = "2c877366fa617c1bea5d9811dd77160f4ae36d24477f6c5841449e75c353925a"
 dependencies = [
  "qiniu-apis",
  "qiniu-credential",
@@ -2821,9 +2764,9 @@ dependencies = [
 
 [[package]]
 name = "qiniu-upload-manager"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d2c03d6efe9273038794c7130e1140c29c4975304122f2198ff49d068d37a3c"
+checksum = "bae6abfcfaefc4a072b03494b46ce81aaf916d23b03f17c8c80b365400ca36f1"
 dependencies = [
  "anyhow",
  "assert-impl",
@@ -2850,9 +2793,9 @@ dependencies = [
 
 [[package]]
 name = "qiniu-upload-token"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "444b25535a8b99afd6a904b2c75783753c59c220530ac111d2d683523afb1f28"
+checksum = "699a326db7112045f4bd1da086f903dabe4e10f3ae5aa5088edd530216d65cea"
 dependencies = [
  "anyhow",
  "assert-impl",
@@ -2870,9 +2813,9 @@ dependencies = [
 
 [[package]]
 name = "qiniu-ureq"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6887bb0b89b054332549844586fed9a227f3b835dd5a6879d83ab73d6a5c3c5d"
+checksum = "eba23218d77652f6779a76870dd3e3881a6bdeae51bf65f2573d9fec7f7d6e65"
 dependencies = [
  "anyhow",
  "qiniu-http",
@@ -2881,9 +2824,9 @@ dependencies = [
 
 [[package]]
 name = "qiniu-utils"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c68e4654b802cf8a21a0a40f19dd2d7994c2c8a25433c652c941df733d4e548"
+checksum = "b6d270e43101064d01bf8c23ed498403f0b9684d024fc0611bad44412bd227ae"
 dependencies = [
  "base64 0.13.1",
  "serde",
@@ -2905,7 +2848,7 @@ version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "588f6378e4dd99458b60ec275b4477add41ce4fa9f64dcba6f15adccb19b50d6"
 dependencies = [
- "env_logger 0.8.4",
+ "env_logger",
  "log",
  "rand 0.8.5",
 ]
@@ -3345,18 +3288,18 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.150"
+version = "1.0.152"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e326c9ec8042f1b5da33252c8a37e9ffbd2c9bef0155215b6e6c80c790e05f91"
+checksum = "bb7d1f0d3021d347a83e556fc4683dea2ea09d87bccdf88ff5c12545d89d5efb"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.150"
+version = "1.0.152"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42a3df25b0713732468deadad63ab9da1f1fd75a48a15024b50363f128db627e"
+checksum = "af487d118eecd09402d70a5d72551860e788df87b464af30e5ea6a38c75c541e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3365,9 +3308,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.89"
+version = "1.0.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "020ff22c755c2ed3f8cf162dbb41a7268d934702f3ed3631656ea597e08fc3db"
+checksum = "877c235533714907a8c2464236f5c4b2a17262ef1bd71f38f35ea592c8da6883"
 dependencies = [
  "itoa 1.0.4",
  "ryu",
@@ -3768,18 +3711,16 @@ dependencies = [
 
 [[package]]
 name = "tauri"
-version = "2.0.0-alpha.1"
+version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e73acd3655cd0f1a6a7350656530c2c9674d7a143e55335817eac6bcb7051c1"
+checksum = "5b48820ee3bb6a5031a83b2b6e11f8630bdc5a2f68cb841ab8ebc7a15a916679"
 dependencies = [
- "android_logger",
  "anyhow",
  "attohttpc",
  "cocoa",
  "dirs-next",
  "embed_plist",
  "encoding_rs",
- "env_logger 0.9.3",
  "flate2",
  "futures-util",
  "glib",
@@ -3788,14 +3729,12 @@ dependencies = [
  "heck 0.4.0",
  "http",
  "ignore",
- "log",
  "notify-rust",
  "objc",
  "once_cell",
  "open",
  "os_info",
  "os_pipe",
- "paste",
  "percent-encoding",
  "rand 0.8.5",
  "raw-window-handle",
@@ -3825,9 +3764,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-build"
-version = "2.0.0-alpha.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbc1552c7312ef9d455db00d403314904fdd8c1c7e7c0fde9ae78df0a49fc799"
+checksum = "8807c85d656b2b93927c19fe5a5f1f1f348f96c2de8b90763b3c2d561511f9b4"
 dependencies = [
  "anyhow",
  "cargo_toml",
@@ -3841,9 +3780,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-codegen"
-version = "2.0.0-alpha.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e78b01de486c5aefb99d2623d856b3d3afb88499bc9b8514e246762505006c1"
+checksum = "14388d484b6b1b5dc0f6a7d6cc6433b3b230bec85eaa576adcdf3f9fafa49251"
 dependencies = [
  "base64 0.13.1",
  "brotli",
@@ -3861,16 +3800,15 @@ dependencies = [
  "tauri-utils",
  "thiserror",
  "time 0.3.17",
- "url",
  "uuid 1.2.2",
  "walkdir",
 ]
 
 [[package]]
 name = "tauri-macros"
-version = "2.0.0-alpha.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df039672c40713ded0f7991efd1d7d6219e008c73137483d6dd2d9988f39472e"
+checksum = "069319e5ecbe653a799b94b0690d9f9bf5d00f7b1d3989aa331c524d4e354075"
 dependencies = [
  "heck 0.4.0",
  "proc-macro2",
@@ -3882,9 +3820,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-runtime"
-version = "0.13.0-alpha.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "010bdd6bb6585b647afe262d3e43ec612969f328d32c9ce20f9cfaefccb5e7a9"
+checksum = "c507d954d08ac8705d235bc70ec6975b9054fb95ff7823af72dbb04186596f3b"
 dependencies = [
  "gtk",
  "http",
@@ -3902,9 +3840,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-runtime-wry"
-version = "0.13.0-alpha.0"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2dadf5f22694dbb5a1fd9496fe28f48ba4288ed4cb8c2584911a81cd57e24e90"
+checksum = "36b1c5764a41a13176a4599b5b7bd0881bea7d94dfe45e1e755f789b98317e30"
 dependencies = [
  "cocoa",
  "gtk",
@@ -3922,9 +3860,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-utils"
-version = "2.0.0-alpha.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c7ee9f908d975a116f2fe3db47d65b18e568aa7913aa333b7a5cd990f179e5e"
+checksum = "5abbc109a6eb45127956ffcc26ef0e875d160150ac16cfa45d26a6b2871686f1"
 dependencies = [
  "brotli",
  "ctor",
