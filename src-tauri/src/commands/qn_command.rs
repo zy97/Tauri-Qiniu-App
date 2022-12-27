@@ -1,15 +1,17 @@
 use crate::{
     error::TauriError,
     models::qn_file::{LocalFile, QnFile},
+    DbConnection,
 };
+use app::models::{downloads, prelude::Downloads};
 use humansize::{format_size, DECIMAL};
-use infer::Type;
 use qiniu_sdk::{
     credential::Credential,
     download::{DownloadManager, StaticDomainsUrlsGenerator},
     objects::ObjectsManager,
 };
-use tauri::AppHandle;
+use sea_orm::EntityTrait;
+use tauri::{AppHandle, State};
 const ACCESS_KEY: &str = "mElDt3TjoRM7iL5qpeZ15U4R9RGy3SBEqNTinKar";
 const SECRET_KEY: &str = "B5fcfvWOuQPZD0EKwVDvEfHk9FBcnRtgocxsMR1Q";
 const BUCKET_NAME: &str = "sc-download";
@@ -96,7 +98,6 @@ pub async fn download(file_info: QnFile, app_handle: AppHandle) -> Result<String
 #[tauri::command]
 pub fn get_download_files(app_handle: AppHandle) -> Result<Vec<LocalFile>, TauriError> {
     let app_dir = app_handle.path_resolver().app_cache_dir().unwrap();
-
     let mut local_files = vec![];
     for entry in path::Path::new(&app_dir).read_dir()? {
         let entry = entry?;
@@ -139,4 +140,16 @@ pub fn get_download_files(app_handle: AppHandle) -> Result<Vec<LocalFile>, Tauri
     }
 
     Ok(local_files)
+}
+
+// remember to call `.manage(MyState::default())`
+#[tauri::command]
+pub async fn get_test(state: State<'_, DbConnection>) -> Result<(), String> {
+    let db = state.db.lock().unwrap().clone();
+    let cheese: Option<downloads::Model> = Downloads::find_by_id("1".to_owned())
+        .one(&db)
+        .await
+        .unwrap();
+    println!("test: {:?}", cheese);
+    Ok(())
 }

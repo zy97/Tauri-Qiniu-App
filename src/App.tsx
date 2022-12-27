@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { SearchOutlined } from '@ant-design/icons';
-import { Avatar, Divider, Drawer, FloatButton, Input, List, Pagination, Select, Skeleton, message } from 'antd';
+import { Avatar, Button, Divider, Drawer, FloatButton, Input, List, Pagination, Select, Skeleton, message } from 'antd';
 import { invoke } from '@tauri-apps/api';
 import VirtualList from 'rc-virtual-list';
 import styles from "./App.module.less";
@@ -113,7 +113,7 @@ function App() {
                   title={<a onClick={() => { QiNiuApi.downloadFile(item) }}>{item.key}</a>}
                   description={`${item.mime_type}--(${item.size})`}
                 />
-                <div></div>
+                <div><Button onClick={() => invoke("get_test")}>test</Button></div>
               </List.Item>
             )}
           />
