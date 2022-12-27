@@ -76,7 +76,7 @@ function App() {
   return (
     <div className={styles.container} ref={containerRef} >
 
-      <Input className={styles.searchInput} size="large" placeholder="输入搜索的文件名字" prefix={<SearchOutlined />} onChange={searchQueryChanged} />
+      <Input className={styles.searchInput} size="large" placeholder="输入搜索的文件名字1" prefix={<SearchOutlined />} onChange={searchQueryChanged} />
       <div onContextMenu={handleContextMenu} >
         {/* <List size='small' loading={loading}>
           <VirtualList
