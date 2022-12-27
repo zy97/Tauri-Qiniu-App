@@ -29,12 +29,6 @@ thiserror = "1.0.38"
 base64 = "0.20.0"
 infer = "0.11.0"
 mime_guess = "2.0.4"
-diesel = { version = "2.0.2", features = [
-    "sqlite",
-    "returning_clauses_for_sqlite_3_35",
-    "serde_json",
-    "quickcheck",
-] }
 tokio = { version = "1.23.0", features = ["full"] }
 dotenvy = "0.15"
 sea-orm = { version = "0.10.6", features = [
@@ -47,6 +41,9 @@ tracing-subscriber = "0.3.16"
 tracing = "0.1.37"
 entity = { path = "../entity" }
 migration = { path = "../migration" }
+libsqlite3-sys = { version = "0.24.2", optional = false, default-features = false, features = [
+    "bundled-sqlcipher",
+] }
 [features]
 # by default Tauri runs in production mode
 # when `tauri dev` runs it is executed with `cargo run --no-default-features` if `devPath` is an URL
@@ -54,6 +51,3 @@ default = ["custom-protocol"]
 # this feature is used used for production builds where `devPath` points to the filesystem
 # DO NOT remove this
 custom-protocol = ["tauri/custom-protocol"]
-
-[[bin]]
-name = "diesel_example"

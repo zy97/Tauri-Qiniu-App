@@ -4,10 +4,9 @@
 )]
 extern crate humansize;
 mod commands;
-use std::{sync::Mutex, time::Duration};
-
 use commands::qn_command::get_lists;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
+use std::{sync::Mutex, time::Duration};
 use tauri::{
     generate_context, CustomMenuItem, Manager, RunEvent, SystemTray, SystemTrayEvent,
     SystemTrayMenu, SystemTrayMenuItem, WindowBuilder,
@@ -16,8 +15,7 @@ use tracing::log;
 mod error;
 use crate::commands::qn_command::{download, get_download_files, get_test};
 pub mod models;
-pub mod schema;
-use migration::{MigrationTrait, Migrator, MigratorTrait};
+use migration::{Migrator, MigratorTrait};
 pub struct DbConnection {
     db: Mutex<DatabaseConnection>,
 }
@@ -35,7 +33,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .idle_timeout(Duration::from_secs(8))
         .max_lifetime(Duration::from_secs(8))
         .sqlx_logging(false)
-        .sqlx_logging_level(log::LevelFilter::Info);
+        .sqlx_logging_level(log::LevelFilter::Info)
+        .sqlcipher_key("bomky");
 
     let db = Database::connect(opt).await?;
     Migrator::up(&db, None).await?;
