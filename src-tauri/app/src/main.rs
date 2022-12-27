@@ -17,6 +17,7 @@ mod error;
 use crate::commands::qn_command::{download, get_download_files, get_test};
 pub mod models;
 pub mod schema;
+use migration::{MigrationTrait, Migrator, MigratorTrait};
 pub struct DbConnection {
     db: Mutex<DatabaseConnection>,
 }
@@ -26,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_max_level(tracing::Level::INFO)
         .with_test_writer()
         .init();
-    let mut opt = ConnectOptions::new("sqlite://./test.db".to_owned());
+    let mut opt = ConnectOptions::new("sqlite://./test.db?mode=rwc".to_owned());
     opt.max_connections(100)
         .min_connections(5)
         .connect_timeout(Duration::from_secs(8))
@@ -37,6 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .sqlx_logging_level(log::LevelFilter::Info);
 
     let db = Database::connect(opt).await?;
+    Migrator::up(&db, None).await?;
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
     let hide = CustomMenuItem::new("hide".to_string(), "Hide");
     let tray_menu = SystemTrayMenu::new()

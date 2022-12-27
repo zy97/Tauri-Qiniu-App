@@ -45,6 +45,8 @@ sea-orm = { version = "0.10.6", features = [
 ] }
 tracing-subscriber = "0.3.16"
 tracing = "0.1.37"
+entity = { path = "../entity" }
+migration = { path = "../migration" }
 [features]
 # by default Tauri runs in production mode
 # when `tauri dev` runs it is executed with `cargo run --no-default-features` if `devPath` is an URL

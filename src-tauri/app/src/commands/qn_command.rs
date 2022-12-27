@@ -3,7 +3,7 @@ use crate::{
     models::qn_file::{LocalFile, QnFile},
     DbConnection,
 };
-use app::models::{downloads, prelude::Downloads};
+use entity::{downloads, prelude::Downloads};
 use humansize::{format_size, DECIMAL};
 use qiniu_sdk::{
     credential::Credential,

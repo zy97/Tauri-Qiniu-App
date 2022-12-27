@@ -7,22 +7,22 @@ pub struct Migration;
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Replace the sample below with your own migration scripts
-        todo!();
 
         manager
             .create_table(
                 Table::create()
-                    .table(Post::Table)
+                    .table(Download::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(Post::Id)
-                            .integer()
+                        ColumnDef::new(Download::Id)
+                            .string()
                             .not_null()
-                            .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Post::Title).string().not_null())
-                    .col(ColumnDef::new(Post::Text).string().not_null())
+                    .col(ColumnDef::new(Download::Key).string().not_null())
+                    .col(ColumnDef::new(Download::Hash).string().not_null())
+                    .col(ColumnDef::new(Download::Size).integer().not_null())
+                    .col(ColumnDef::new(Download::MimeType).string().not_null())
                     .to_owned(),
             )
             .await
@@ -30,19 +30,20 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Replace the sample below with your own migration scripts
-        todo!();
 
         manager
-            .drop_table(Table::drop().table(Post::Table).to_owned())
+            .drop_table(Table::drop().table(Download::Table).to_owned())
             .await
     }
 }
 
 /// Learn more at https://docs.rs/sea-query#iden
 #[derive(Iden)]
-enum Post {
+enum Download {
     Table,
     Id,
-    Title,
-    Text,
+    Key,
+    Hash,
+    Size,
+    MimeType,
 }
