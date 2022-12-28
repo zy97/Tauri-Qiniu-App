@@ -13,16 +13,12 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Download::Table)
                     .if_not_exists()
-                    .col(
-                        ColumnDef::new(Download::Id)
-                            .string()
-                            .not_null()
-                            .primary_key(),
-                    )
+                    .col(ColumnDef::new(Download::Id).uuid().not_null().primary_key())
                     .col(ColumnDef::new(Download::Key).string().not_null())
                     .col(ColumnDef::new(Download::Hash).string().not_null())
-                    .col(ColumnDef::new(Download::Size).integer().not_null())
+                    .col(ColumnDef::new(Download::Size).string().not_null())
                     .col(ColumnDef::new(Download::MimeType).string().not_null())
+                    .col(ColumnDef::new(Download::Path).string().not_null())
                     .to_owned(),
             )
             .await
@@ -46,4 +42,5 @@ enum Download {
     Hash,
     Size,
     MimeType,
+    Path,
 }

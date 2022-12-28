@@ -3,14 +3,15 @@ use crate::{
     models::qn_file::{LocalFile, QnFile},
     DbConnection,
 };
-use entity::{downloads, prelude::Downloads};
+use entity::{download, prelude::Downloads};
 use humansize::{format_size, DECIMAL};
 use qiniu_sdk::{
     credential::Credential,
     download::{DownloadManager, StaticDomainsUrlsGenerator},
     objects::ObjectsManager,
 };
-use sea_orm::EntityTrait;
+use sea_orm::{prelude::Uuid, ActiveModelTrait, EntityTrait, Set};
+use serde_json::json;
 use tauri::{AppHandle, State};
 const ACCESS_KEY: &str = "mElDt3TjoRM7iL5qpeZ15U4R9RGy3SBEqNTinKar";
 const SECRET_KEY: &str = "B5fcfvWOuQPZD0EKwVDvEfHk9FBcnRtgocxsMR1Q";
@@ -18,6 +19,7 @@ const BUCKET_NAME: &str = "sc-download";
 const DOMAIN: &str = "download.yucunkeji.com";
 use std::{
     path::{self},
+    str::FromStr,
     vec,
 };
 #[tauri::command]
@@ -53,7 +55,11 @@ pub fn get_lists(
 }
 
 #[tauri::command]
-pub async fn download(file_info: QnFile, app_handle: AppHandle) -> Result<String, TauriError> {
+pub async fn download(
+    file_info: QnFile,
+    app_handle: AppHandle,
+    state: State<'_, DbConnection>,
+) -> Result<String, TauriError> {
     let app_dir = app_handle.path_resolver().app_cache_dir().unwrap();
     let mut hash_file_name = String::new();
     let extension_name = file_info.key.rfind('.');
@@ -80,7 +86,7 @@ pub async fn download(file_info: QnFile, app_handle: AppHandle) -> Result<String
             .build(),
     );
     download_manager
-        .download(file_info.key)?
+        .download(&file_info.key)?
         .on_download_progress(|e| {
             println!(
                 "已下载：{}/{}",
@@ -91,65 +97,27 @@ pub async fn download(file_info: QnFile, app_handle: AppHandle) -> Result<String
         })
         .to_path(&file_path)
         .unwrap();
+    let connection = state.db.lock().unwrap().clone();
+    let download = download::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        key: Set(file_info.key),
+        hash: Set(file_info.hash),
+        size: Set(file_info.size),
+        mime_type: Set(file_info.mime_type),
+        path: Set(file_path.display().to_string()),
+    };
+    let download = download.insert(&connection).await?;
+    println!("插入: {:?}", download);
     println!("下载完成: {}", file_path.display());
     Ok(file_path.display().to_string())
 }
 
 #[tauri::command]
-pub fn get_download_files(app_handle: AppHandle) -> Result<Vec<LocalFile>, TauriError> {
-    let app_dir = app_handle.path_resolver().app_cache_dir().unwrap();
-    let mut local_files = vec![];
-    for entry in path::Path::new(&app_dir).read_dir()? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_file() {
-            let mut key = String::new();
-            let file_name = path.file_name().unwrap().to_str().unwrap();
-            let extension_name = file_name.rfind('.');
-
-            let mime = mime_guess::from_path(&path)
-                .first_or_octet_stream()
-                .to_string();
-            match extension_name {
-                Some(index) => local_files.push(LocalFile {
-                    name: format!(
-                        "{}{}",
-                        base64::decode(&file_name[..index])
-                            .unwrap()
-                            .into_iter()
-                            .map(|c| c as char)
-                            .collect::<String>(),
-                        &file_name[index..]
-                    ),
-                    path,
-                    mime,
-                }),
-                None => {
-                    local_files.push(LocalFile {
-                        name: base64::decode(file_name)
-                            .unwrap()
-                            .into_iter()
-                            .map(|c| c as char)
-                            .collect::<String>(),
-                        path,
-                        mime,
-                    });
-                }
-            }
-        }
-    }
-
-    Ok(local_files)
-}
-
-// remember to call `.manage(MyState::default())`
-#[tauri::command]
-pub async fn get_test(state: State<'_, DbConnection>) -> Result<(), String> {
+pub async fn get_download_files(
+    app_handle: AppHandle,
+    state: State<'_, DbConnection>,
+) -> Result<Vec<download::Model>, TauriError> {
     let db = state.db.lock().unwrap().clone();
-    let cheese: Option<downloads::Model> = Downloads::find_by_id("1".to_owned())
-        .one(&db)
-        .await
-        .unwrap();
-    println!("test: {:?}", cheese);
-    Ok(())
+    let downloads = Downloads::find().all(&db).await?;
+    Ok(downloads)
 }

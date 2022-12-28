@@ -1,2 +1,2 @@
-pub mod downloads;
+pub mod download;
 pub mod prelude;

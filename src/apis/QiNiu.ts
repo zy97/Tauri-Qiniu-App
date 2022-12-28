@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api";
-import { LocalFile, QnFile } from "../models/File";
+import { Download, QnFile } from "../models/File";
 
 export const getLists = (args?: { marker?: String, query?: String, pageSize?: number }) => {
     return invoke<QnFile[]>("get_lists", args);
@@ -9,5 +9,5 @@ export const downloadFile = (file: QnFile) => {
 }
 
 export const getdownloadLists = () => {
-    return invoke<LocalFile[]>("get_download_files", {});
+    return invoke<Download[]>("get_download_files", {});
 }

@@ -13,7 +13,7 @@ use tauri::{
 };
 use tracing::log;
 mod error;
-use crate::commands::qn_command::{download, get_download_files, get_test};
+use crate::commands::qn_command::{download, get_download_files};
 pub mod models;
 use migration::{Migrator, MigratorTrait};
 pub struct DbConnection {
@@ -72,7 +72,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             get_lists,
             download,
             get_download_files,
-            get_test
         ])
         .build(generate_context!())
         .expect("error while building tauri application")

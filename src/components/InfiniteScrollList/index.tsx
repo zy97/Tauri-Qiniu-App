@@ -4,40 +4,40 @@ import { QnFile } from "../../models/File";
 import { transformFileType } from "../../utils/utils";
 import styles from "./index.module.less";
 interface Props {
-    dataSource: QnFile[];
-    newItems: QnFile[] | undefined;
-    containerHeight: number | undefined;
-    extractHeight: number;
-    pageSize: number;
-    loadMore: () => void;
-    download: (item: QnFile) => void;
+  dataSource: QnFile[];
+  newItems: QnFile[] | undefined;
+  containerHeight: number | undefined;
+  extractHeight: number;
+  pageSize: number;
+  loadMore: () => void;
+  download: (item: QnFile) => void;
 }
 function InfiniteScrollList(props: Props) {
-    const { dataSource, newItems, containerHeight, extractHeight, loadMore, download, pageSize } = props
-    return (
-        <>
-            <InfiniteScroll height={(containerHeight ?? 100) - extractHeight}
-                dataLength={dataSource.length}
-                next={loadMore}
-                hasMore={newItems !== undefined ? newItems.length == pageSize : true}
-                loader={<Skeleton avatar paragraph={{ rows: 1 }} active />}
-                endMessage={<Divider plain>It is all, nothing more 🤐</Divider>}>
-                <List
-                    dataSource={dataSource}
-                    renderItem={(item) => (
-                        <List.Item key={item.key}>
-                            <List.Item.Meta
-                                avatar={<img src={`../src/assets/${transformFileType(item.mime_type)}.svg`} className={styles.avatar}></img>}
-                                title={<a onClick={() => { download(item) }}>{item.key}</a>}
-                                description={`${item.mime_type}--(${item.size})`}
-                            />
-                            <div></div>
-                        </List.Item>
-                    )}
-                />
-            </InfiniteScroll>
-        </>
-    );
+  const { dataSource, newItems, containerHeight, extractHeight, loadMore, download, pageSize } = props
+  return (
+    <>
+      <InfiniteScroll height={(containerHeight ?? 100) - extractHeight}
+        dataLength={dataSource.length}
+        next={loadMore}
+        hasMore={newItems !== undefined ? newItems.length == pageSize : true}
+        loader={<Skeleton avatar paragraph={{ rows: 1 }} active />}
+        endMessage={<Divider plain>It is all, nothing more 🤐</Divider>}>
+        <List
+          dataSource={dataSource}
+          renderItem={(item) => (
+            <List.Item key={item.key}>
+              <List.Item.Meta
+                avatar={<img src={`../src/assets/${transformFileType(item.mime_type)}.svg`} className={styles.avatar}></img>}
+                title={<a onClick={() => { download(item) }}>{item.key}</a>}
+                description={`${item.mime_type}--(${item.size})`}
+              />
+              <div></div>
+            </List.Item>
+          )}
+        />
+      </InfiniteScroll>
+    </>
+  );
 }
 
 export default InfiniteScrollList;

@@ -4,11 +4,11 @@ import { QiNiuApi } from '../../apis';
 import { useEffect, useRef, useState } from 'react';
 import { List } from 'antd';
 import { open } from '@tauri-apps/api/shell';
-import { LocalFile } from '../../models/File';
+import { Download } from '../../models/File';
 import { transformFileType } from '../../utils/utils';
 function DownloadPanel() {
     const ref = useRef(null);
-    const [list, setList] = useState<LocalFile[]>()
+    const [list, setList] = useState<Download[]>()
     const [inViewport] = useInViewport(ref);
     const { data: searchResult, run: search } = useRequest(QiNiuApi.getdownloadLists, {
         debounceWait: 50,
@@ -26,7 +26,7 @@ function DownloadPanel() {
         console.log(searchResult);
     }, [searchResult])
 
-    const openFile = (file: LocalFile) => {
+    const openFile = (file: Download) => {
         open(file.path);
         console.log(file);
     }
@@ -40,10 +40,10 @@ function DownloadPanel() {
             <List
                 dataSource={list}
                 renderItem={(item) => (
-                    <List.Item key={item.name}>
+                    <List.Item key={item.key}>
                         <List.Item.Meta
-                            avatar={<img src={`../src/assets/${transformFileType(item.mime)}.svg`} className={styles.avatar}></img>}
-                            title={<a onClick={() => { openFile(item) }}>{item.name}</a>}
+                            avatar={<img src={`../src/assets/${transformFileType(item.mime_type)}.svg`} className={styles.avatar}></img>}
+                            title={<a onClick={() => { openFile(item) }}>{item.key}</a>}
                         />
                         <div></div>
                     </List.Item>
