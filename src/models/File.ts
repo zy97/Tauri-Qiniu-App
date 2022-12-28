@@ -2,7 +2,7 @@ export interface QnFile {
     hash: string;
     key: string;
     mime_type: string;
-    size: number;
+    size: string;
     marker: string;
 }
 export interface LocalFile {

@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { SearchOutlined } from '@ant-design/icons';
-import { Avatar, Button, Divider, Drawer, FloatButton, Input, List, Pagination, Select, Skeleton, message } from 'antd';
-import { invoke } from '@tauri-apps/api';
-import VirtualList from 'rc-virtual-list';
+import { Drawer, FloatButton, Input, Select, message } from 'antd';
 import styles from "./App.module.less";
 import { useRequest, useSize } from 'ahooks';
 import 'react-contexify/ReactContexify.css';
@@ -11,8 +9,7 @@ import { QnFile } from './models/File';
 import { QiNiuApi } from './apis';
 import { DownloadOutlined } from '@ant-design/icons';
 import DownloadPanel from './components/DownloadPanel';
-import { transformFileType } from './utils/utils';
-import InfiniteScroll from 'react-infinite-scroll-component';
+import InfiniteScrollList from './components/InfiniteScrollList';
 const MENU_ID = 'contextMenu';
 const pages = [{ label: "10项", value: 10 }, { label: "20项", value: 20 }, { label: "50项", value: 50 }, { label: "100项", value: 100 }];
 const defaultPageSize = 10;
@@ -42,7 +39,14 @@ function App() {
   });
   useEffect(() => {
     if (searchResult) {
-      setData(data.concat(searchResult));
+      const array = data;
+      for (const item of searchResult) {
+        if (array.find(i => i.key === item.key && i.hash === item.hash && i.size === item.size && i.mime_type === item.mime_type) === undefined) {
+          array.push(item);
+        }
+      }
+      console.log(array);
+      setData([...array]);
     }
   }, [searchResult]);
 
@@ -73,51 +77,21 @@ function App() {
   const onClose = () => {
     setOpen(false);
   };
+  const loadMore = () => {
+    let marker = data[data.length - 1].marker;
+    search({ marker, query: searchTxt, pageSize });
+  }
+  const download = (item: QnFile) => {
+    QiNiuApi.downloadFile(item);
+  }
   return (
     <div className={styles.container} ref={containerRef} >
 
       <Input className={styles.searchInput} size="large" placeholder="输入搜索的文件名字1" prefix={<SearchOutlined />} onChange={searchQueryChanged} />
       <div onContextMenu={handleContextMenu} >
-        {/* <List size='small' loading={loading}>
-          <VirtualList
-            data={data}
-            height={(containerSize?.height ?? 100) - extractHeight}
-            itemHeight={22}
-            itemKey="key"
-            onScroll={onScroll}
-          >
-            {(item: QnFile) => (
-              <List.Item key={item.key}>
-                <List.Item.Meta
-                  avatar={<img src={`../src/assets/${transformFileType(item.mime_type)}.svg`} className={styles.avatar}></img>}
-                  title={<a onClick={() => { QiNiuApi.downloadFile(item) }}>{item.key}</a>}
-                  description={`${item.mime_type}--(${item.size})`}
-                />
-                <div></div>
-              </List.Item>
-            )}
-          </VirtualList>
-        </List> */}
-        <InfiniteScroll height={(containerSize?.height ?? 100) - extractHeight}
-          dataLength={data.length}
-          next={() => { let marker = data[data.length - 1].marker; search({ marker, query: searchTxt, pageSize }); }}
-          hasMore={searchResult !== undefined ? searchResult.length > 0 : true}
-          loader={<Skeleton avatar paragraph={{ rows: 1 }} active />}
-          endMessage={<Divider plain>It is all, nothing more 🤐</Divider>}>
-          <List
-            dataSource={data}
-            renderItem={(item) => (
-              <List.Item key={item.key}>
-                <List.Item.Meta
-                  avatar={<img src={`../src/assets/${transformFileType(item.mime_type)}.svg`} className={styles.avatar}></img>}
-                  title={<a onClick={() => { QiNiuApi.downloadFile(item) }}>{item.key}</a>}
-                  description={`${item.mime_type}--(${item.size})`}
-                />
-                <div><Button onClick={() => invoke("get_test")}>test</Button></div>
-              </List.Item>
-            )}
-          />
-        </InfiniteScroll>
+        <InfiniteScrollList dataSource={data} newItems={searchResult}
+          containerHeight={containerSize?.height} extractHeight={extractHeight}
+          loadMore={loadMore} download={download} pageSize={pageSize} />
       </div>
       <div ref={footerRef} className={styles.footer}>
         <span className={styles.page}>

@@ -41,9 +41,7 @@ tracing-subscriber = "0.3.16"
 tracing = "0.1.37"
 entity = { path = "../entity" }
 migration = { path = "../migration" }
-libsqlite3-sys = { version = "0.24.2", optional = false, default-features = false, features = [
-    "bundled-sqlcipher",
-] }
+
 [features]
 # by default Tauri runs in production mode
 # when `tauri dev` runs it is executed with `cargo run --no-default-features` if `devPath` is an URL
