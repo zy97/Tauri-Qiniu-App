@@ -4,6 +4,7 @@ export interface QnFile {
     mime_type: string;
     size: string;
     marker: string;
+    downloaded: boolean;
 }
 export interface Download {
     id: string,

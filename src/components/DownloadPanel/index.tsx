@@ -55,7 +55,8 @@ function DownloadPanel() {
     }, [searchResult])
 
     const openFile = (file: Download) => {
-        if (map.get(JSON.stringify(file)) !== 100) {
+        const progress = map.get(JSON.stringify(file));
+        if (progress !== undefined && progress !== 100) {
             notification.error({
                 message: '文件未下载完成'
             });

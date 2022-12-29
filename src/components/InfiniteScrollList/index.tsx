@@ -1,5 +1,4 @@
-import { emit } from "@tauri-apps/api/event";
-import { Button, Divider, List, Skeleton } from "antd";
+import { Divider, List, Skeleton, Tag } from "antd";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { QnFile } from "../../models/File";
 import { transformFileType } from "../../utils/utils";
@@ -15,7 +14,7 @@ interface Props {
 }
 function InfiniteScrollList(props: Props) {
   const { dataSource, newItems, containerHeight, extractHeight, loadMore, download, pageSize } = props
-  
+
   return (
     <>
       <InfiniteScroll height={(containerHeight ?? 100) - extractHeight}
@@ -31,7 +30,7 @@ function InfiniteScrollList(props: Props) {
               <List.Item.Meta
                 avatar={<img src={`../src/assets/${transformFileType(item.mime_type)}.svg`} className={styles.avatar}></img>}
                 title={<a onClick={() => { download(item) }}>{item.key}</a>}
-                description={`${item.mime_type}--(${item.size})`}
+                description={<div>${item.mime_type}  (${item.size})  {item.downloaded && <Tag color="green">已下载</Tag>}  </div>}
               />
               <div></div>
             </List.Item>

@@ -31,7 +31,9 @@ pub async fn get_lists(
     marker: Option<String>,
     query: Option<String>,
     page_size: Option<usize>,
+    state: State<'_, DbConnection>,
 ) -> Result<Vec<QnFile>, TauriError> {
+    let connection = state.db.lock().unwrap().clone();
     println!("marker:{marker:?}, query:{query:?}, page_size:{page_size:?}");
 
     let mut files = vec![];
@@ -45,12 +47,26 @@ pub async fn get_lists(
         .marker(marker.unwrap_or("".to_owned()))
         .stream();
     while let Some(entry) = iter.try_next().await? {
+        let key = entry.get_key_as_str().to_owned();
+        let hash = entry.get_hash_as_str().to_owned();
+        let size = format_size(entry.get_size_as_u64(), DECIMAL);
+        let mime_type = entry.get_mime_type_as_str().to_owned();
+        let marker = iter.marker().map(|s| s.to_string());
+        let downloaded = Downloads::find()
+            .filter(download::Column::Hash.eq(hash.clone()))
+            .filter(download::Column::Key.eq(key.clone()))
+            .filter(download::Column::MimeType.eq(mime_type.clone()))
+            .filter(download::Column::Size.eq(size.clone()))
+            .count(&connection)
+            .await?
+            > 0;
         files.push(QnFile {
-            key: entry.get_key_as_str().into(),
-            hash: entry.get_hash_as_str().into(),
-            size: format_size(entry.get_size_as_u64(), DECIMAL),
-            mime_type: entry.get_mime_type_as_str().into(),
-            marker: iter.marker().map(|s| s.to_string()),
+            key,
+            hash,
+            size,
+            mime_type,
+            marker,
+            downloaded,
         });
     }
 
@@ -113,21 +129,18 @@ pub async fn download(
             .await
             .unwrap()
             .on_download_progress(move |e| {
+                let transferred_bytes = e.transferred_bytes() as f64;
+                let total_bytes = e.total_bytes().unwrap_or(transferred_bytes as u64) as f64;
                 window
                     .emit(
                         "download-progress",
                         Payload {
                             data: download.clone(),
-                            progress: e.transferred_bytes() as f64
-                                / e.total_bytes().unwrap_or_default() as f64,
+                            progress: transferred_bytes / total_bytes,
                         },
                     )
                     .unwrap();
-                println!(
-                    "已下载：{}/{}",
-                    e.transferred_bytes(),
-                    e.total_bytes().unwrap_or_default()
-                );
+                println!("已下载：{}/{}", total_bytes, transferred_bytes);
                 Ok(())
             })
             .async_to_path(&file_path)

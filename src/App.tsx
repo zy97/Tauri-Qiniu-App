@@ -5,11 +5,12 @@ import styles from "./App.module.less";
 import { useRequest, useSize } from 'ahooks';
 import 'react-contexify/ReactContexify.css';
 import { Item, Menu, useContextMenu } from 'react-contexify';
-import { QnFile } from './models/File';
+import { DownloadEventPayload, QnFile } from './models/File';
 import { QiNiuApi } from './apis';
 import { DownloadOutlined } from '@ant-design/icons';
 import DownloadPanel from './components/DownloadPanel';
 import InfiniteScrollList from './components/InfiniteScrollList';
+import { appWindow } from '@tauri-apps/api/window';
 const MENU_ID = 'contextMenu';
 const pages = [{ label: "10项", value: 10 }, { label: "20项", value: 20 }, { label: "50项", value: 50 }, { label: "100项", value: 100 }];
 const defaultPageSize = 10;
@@ -52,16 +53,38 @@ function App() {
   }, [searchResult]);
 
   const [searchTxt, setSearchTxt] = useState("");
+
   useEffect(() => {
     search({ pageSize });
+    const unlisten = appWindow.listen<DownloadEventPayload>('download-progress', (event) => {
+      if (event.payload.progress === 1) {
+        const info = event.payload.data;
+        setData((data) => {
+          // const item = data.find(i => i.hash === info.hash && i.key === info.key && i.size === info.size && i.mime_type === info.mime_type);
+          const index = data.findIndex(i => i.hash === info.hash && i.key === info.key && i.size === info.size && i.mime_type === info.mime_type);
+          if (index !== -1) {
+            data[index].downloaded = true;
+          }
+          else {
+            console.log("下载完成，但是没有找到对应的文件", data, info);
+          }
+          return [...data];
+        });
+        // setData([...data]);
+      }
+    }).then((result) => {
+      console.log("监听成功");
+    }).catch((err) => {
+      console.log("监听失败");
+    })
+    return (() => {
+      unlisten.then(() => {
+        console.log("取消监听");
+      });
+    })
   }, []);
   const [data, setData] = useState<QnFile[]>([]);
-  const onScroll = (e: React.UIEvent<HTMLElement, UIEvent>) => {
-    if (e.currentTarget.scrollHeight - e.currentTarget.scrollTop === (containerSize?.height ?? 0) - extractHeight) {
-      let marker = data[data.length - 1].marker;
-      search({ marker, query: searchTxt, pageSize });
-    }
-  };
+
   const searchQueryChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
     const txt = e.target.value;
     if (txt !== searchTxt) {
