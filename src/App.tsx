@@ -31,6 +31,7 @@ function App() {
       }
     })
   }
+
   const containerSize = useSize(containerRef);
   const { data: searchResult, run: search, loading } = useRequest(QiNiuApi.getLists, {
     debounceWait: 50,
@@ -87,7 +88,7 @@ function App() {
   return (
     <div className={styles.container} ref={containerRef} >
 
-      <Input className={styles.searchInput} size="large" placeholder="输入搜索的文件名字1" prefix={<SearchOutlined />} onChange={searchQueryChanged} />
+      <Input className={styles.searchInput} size="large" placeholder="输入搜索的文件名字" prefix={<SearchOutlined />} onChange={searchQueryChanged} />
       <div onContextMenu={handleContextMenu} >
         <InfiniteScrollList dataSource={data} newItems={searchResult}
           containerHeight={containerSize?.height} extractHeight={extractHeight}

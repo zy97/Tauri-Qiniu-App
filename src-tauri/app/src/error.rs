@@ -1,4 +1,5 @@
-use qiniu_sdk::objects::apis::http_client::ResponseError;
+use qiniu_sdk::{download::DownloadError, objects::apis::http_client::ResponseError};
+use sea_orm::DatabaseConnection;
 use serde::Serialize;
 use std::{
     io,
@@ -10,12 +11,12 @@ use thiserror::Error;
 pub enum TauriError {
     #[error("IO error: {0:?}")]
     IO(#[from] io::Error),
-    // #[error("lock error: {0:?}")]
-    // Lock(#[from] PoisonError<MutexGuard<'_, T>>),
+    // #[error("lock error")]
+    // Lock(#[from] PoisonError<std::sync::MutexGuard<'static, DatabaseConnection>>),
     #[error("lock error: {0:?}")]
     SeaDbErrpr(#[from] sea_orm::DbErr),
-    // #[error("invalid header (expected {expected:?}, found {found:?})")]
-    // InvalidHeader { expected: String, found: String },
+    #[error("download error: {0:?}")]
+    InvalidHeader(#[from] DownloadError),
     // #[error("unknown data store error")]
     // Unknown,
     #[error("七牛请求错误: {0:?}")]

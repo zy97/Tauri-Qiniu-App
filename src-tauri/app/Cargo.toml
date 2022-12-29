@@ -23,6 +23,7 @@ qiniu-sdk = { version = "0.2.2", features = [
     "reqwest",
     "credential",
     "download",
+    "async",
 ] }
 humansize = "2.1.2"
 thiserror = "1.0.38"
@@ -37,11 +38,12 @@ sea-orm = { version = "0.10.6", features = [
     "runtime-tokio-native-tls",
     "debug-print",
 ] }
+
 tracing-subscriber = "0.3.16"
 tracing = "0.1.37"
 entity = { path = "../entity" }
 migration = { path = "../migration" }
-
+futures = "0.3.25"
 [features]
 # by default Tauri runs in production mode
 # when `tauri dev` runs it is executed with `cargo run --no-default-features` if `devPath` is an URL

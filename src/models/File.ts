@@ -13,3 +13,8 @@ export interface Download {
     mime_type: string,
     path: string,
 }
+
+export interface DownloadEventPayload {
+    progress: number,
+    data: Download
+}

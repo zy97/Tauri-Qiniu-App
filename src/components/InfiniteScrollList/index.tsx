@@ -1,4 +1,5 @@
-import { Divider, List, Skeleton } from "antd";
+import { emit } from "@tauri-apps/api/event";
+import { Button, Divider, List, Skeleton } from "antd";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { QnFile } from "../../models/File";
 import { transformFileType } from "../../utils/utils";
@@ -14,6 +15,7 @@ interface Props {
 }
 function InfiniteScrollList(props: Props) {
   const { dataSource, newItems, containerHeight, extractHeight, loadMore, download, pageSize } = props
+  
   return (
     <>
       <InfiniteScroll height={(containerHeight ?? 100) - extractHeight}
