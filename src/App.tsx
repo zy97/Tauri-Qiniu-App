@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { SearchOutlined } from '@ant-design/icons';
 import { Drawer, FloatButton, Input, Select, message, Badge, Button, Space } from 'antd';
 import styles from "./App.module.less";
-import { useRequest, useSize } from 'ahooks';
+import { useEventEmitter, useFocusWithin, useGetState, useInViewport, useRequest, useSize } from 'ahooks';
 import 'react-contexify/ReactContexify.css';
 import { Item, Menu, useContextMenu } from 'react-contexify';
 import { DownloadEventPayload, QnFile } from './models/File';
@@ -61,7 +61,10 @@ function App() {
     const unlisten = appWindow.listen<DownloadEventPayload>('download-progress', (event) => {
       if (event.payload.progress === 1) {
         console.log(JSON.stringify(event.payload.data))
-        setDownloadNifityCount((count) => count + 1);
+        console.log(getDownloadPanelVisibility());
+        if (getDownloadPanelVisibility() === false) {
+          setDownloadNifityCount((count) => count + 1);
+        }
         const info = event.payload.data;
         setData((data) => {
           const index = data.findIndex(i => i.hash === info.hash && i.key === info.key && i.size === info.size && i.mime_type === info.mime_type);
@@ -117,6 +120,12 @@ function App() {
   const download = (item: QnFile) => {
     QiNiuApi.downloadFile(item);
   }
+  const downloadPanelVisibilityEventEmitter$ = useEventEmitter<boolean>();
+  downloadPanelVisibilityEventEmitter$.useSubscription(visibility => {
+    console.log("downloadPanelVisibilityEventEmitter$", visibility);
+    setdownloadPanelVisibility(visibility);
+  });
+  const [downloadPanelVisibility, setdownloadPanelVisibility, getDownloadPanelVisibility] = useGetState(false);
   return (
     <div className={styles.container} ref={containerRef} >
 
@@ -152,7 +161,7 @@ function App() {
 
 
       <Drawer title="下载" placement="right" onClose={onClose} open={open} size="large">
-        <DownloadPanel />
+        <DownloadPanel downloadPanelVisibilityEventEmitter={downloadPanelVisibilityEventEmitter$} />
       </Drawer>
     </div >
   )

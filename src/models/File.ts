@@ -13,6 +13,7 @@ export interface Download {
     size: string,
     mime_type: string,
     path: string,
+    download_date: Date;
 }
 
 export interface DownloadEventPayload {

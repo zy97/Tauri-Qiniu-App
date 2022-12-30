@@ -19,6 +19,11 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Download::Size).string().not_null())
                     .col(ColumnDef::new(Download::MimeType).string().not_null())
                     .col(ColumnDef::new(Download::Path).string().not_null())
+                    .col(
+                        ColumnDef::new(Download::DownloadDate)
+                            .date_time()
+                            .not_null(),
+                    )
                     .to_owned(),
             )
             .await
@@ -43,4 +48,5 @@ enum Download {
     Size,
     MimeType,
     Path,
+    DownloadDate,
 }

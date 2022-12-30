@@ -1,8 +1,5 @@
-use crate::{
-    error::TauriError,
-    models::qn_file::{LocalFile, QnFile},
-    DbConnection,
-};
+use crate::{error::TauriError, models::qn_file::QnFile, DbConnection};
+use chrono::Utc;
 use entity::{download, prelude::Downloads};
 use futures::{future::ok, stream::TryStreamExt};
 use humansize::{format_size, DECIMAL};
@@ -12,11 +9,13 @@ use qiniu_sdk::{
     objects::ObjectsManager,
 };
 use sea_orm::{
-    prelude::Uuid, ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set,
+    prelude::{ChronoDateTime, ChronoDateTimeWithTimeZone, DateTimeLocal, TimeDate, Uuid},
+    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set,
 };
 use serde::Serialize;
 use serde_json::json;
 use tauri::{AppHandle, Manager, State, Window};
+use tracing::{info, trace};
 const ACCESS_KEY: &str = "mElDt3TjoRM7iL5qpeZ15U4R9RGy3SBEqNTinKar";
 const SECRET_KEY: &str = "B5fcfvWOuQPZD0EKwVDvEfHk9FBcnRtgocxsMR1Q";
 const BUCKET_NAME: &str = "sc-download";
@@ -34,8 +33,8 @@ pub async fn get_lists(
     state: State<'_, DbConnection>,
 ) -> Result<Vec<QnFile>, TauriError> {
     let connection = state.db.lock().unwrap().clone();
-    println!("marker:{marker:?}, query:{query:?}, page_size:{page_size:?}");
-
+    info!("marker:{marker:?}, query:{query:?}, page_size:{page_size:?}");
+    info!("{}", Utc::now());
     let mut files = vec![];
     let credential = Credential::new(ACCESS_KEY, SECRET_KEY);
     let object_manager = ObjectsManager::new(credential);
@@ -60,6 +59,7 @@ pub async fn get_lists(
             .count(&connection)
             .await?
             > 0;
+
         files.push(QnFile {
             key,
             hash,
@@ -69,7 +69,7 @@ pub async fn get_lists(
             downloaded,
         });
     }
-
+    trace!("files:{:?}", files);
     Ok(files)
 }
 
@@ -122,6 +122,7 @@ pub async fn download(
             size: Set(file_info.size),
             mime_type: Set(file_info.mime_type),
             path: Set(String::from(&file_path.display().to_string())),
+            download_date: Set(Utc::now()),
         };
         let download = download.insert(&connection).await.unwrap();
         download_manager

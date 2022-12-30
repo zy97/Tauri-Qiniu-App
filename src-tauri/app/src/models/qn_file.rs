@@ -1,3 +1,4 @@
+use chrono::{DateTime, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -11,9 +12,10 @@ pub struct QnFile {
     pub marker: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct LocalFile {
-    pub name: String,
-    pub path: PathBuf,
-    pub mime: String,
-}
+// #[derive(Serialize, Deserialize, Debug)]
+// pub struct LocalFile {
+//     pub name: String,
+//     pub path: PathBuf,
+//     pub mime: String,
+//     pub download_date: NaiveDateTime,
+// }

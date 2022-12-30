@@ -7,26 +7,24 @@ import { open } from '@tauri-apps/api/shell';
 import { Download, DownloadEventPayload } from '../../models/File';
 import { transformFileType } from '../../utils/utils';
 import { appWindow } from '@tauri-apps/api/window';
-function DownloadPanel() {
+import dayjs from 'dayjs';
+import { EventEmitter } from 'ahooks/lib/useEventEmitter';
+interface Props {
+    downloadPanelVisibilityEventEmitter: EventEmitter<boolean>
+}
+function DownloadPanel(props: Props) {
+    const { downloadPanelVisibilityEventEmitter } = props;
     const ref = useRef(null);
     const [list, setList] = useState<Download[]>();
     const update = useUpdate();
     const [map, { set, get }] = useMap<string, number>();
     const [inViewport] = useInViewport(ref);
     useEffect(() => {
+        downloadPanelVisibilityEventEmitter.emit(true);
         const unlisten = appWindow.listen<DownloadEventPayload>('download-progress', (event) => {
             const key = JSON.stringify(event.payload.data);
             const value = Math.round(event.payload.progress * 100);
-            // if (downloads[key] !== undefined) {
-            //     setdownloads(i => { i[key] = value; return i });
-            // }
-            // else {
-            //     downloads[key] = value;
-            //     setdownloads({ ...downloads });
-            // }
-            // console.log(`时间名称：${event.event}，负载：${JSON.stringify(event.payload)}`)
             set(key, value);
-            // update();
         }).then((result) => {
             console.log("监听成功");
         }).catch((err) => {
@@ -37,6 +35,7 @@ function DownloadPanel() {
             unlisten.then(() => {
                 console.log("取消监听");
             });
+            downloadPanelVisibilityEventEmitter.emit(false);
         })
     }, [])
     const { data: searchResult, run: search } = useRequest(QiNiuApi.getdownloadLists, {
@@ -64,6 +63,7 @@ function DownloadPanel() {
         }
         open(file.path);
     }
+    var now = dayjs()
     return (
         <div ref={ref} className={styles['download-panel']}>
             <List
@@ -76,13 +76,16 @@ function DownloadPanel() {
                             title={<Space>
                                 <a onClick={() => { openFile(item) }}>{item.key}</a>
                                 <span className={styles['gray-txt']}>{item.size}</span>
+                                <span className={styles['gray-txt']}>{dayjs(item.download_date).format('L LTS')}</span>
+
                             </Space>}
                         />
                         <div></div>
                     </List.Item>
-                )}
+                )
+                }
             />
-        </div>
+        </div >
     );
 }
 

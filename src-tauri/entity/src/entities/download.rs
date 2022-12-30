@@ -13,6 +13,7 @@ pub struct Model {
     pub size: String,
     pub mime_type: String,
     pub path: String,
+    pub download_date: DateTimeUtc,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
