@@ -10,7 +10,7 @@ use qiniu_sdk::{
 };
 use sea_orm::{
     prelude::{ChronoDateTime, ChronoDateTimeWithTimeZone, DateTimeLocal, TimeDate, Uuid},
-    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set,
+    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set,
 };
 use serde::Serialize;
 use serde_json::json;
@@ -160,7 +160,10 @@ pub async fn get_download_files(
     state: State<'_, DbConnection>,
 ) -> Result<Vec<download::Model>, TauriError> {
     let db = state.db.lock().unwrap().clone();
-    let downloads = Downloads::find().all(&db).await?;
+    let downloads = Downloads::find()
+        .order_by_desc(download::Column::DownloadDate)
+        .all(&db)
+        .await?;
     Ok(downloads)
 }
 #[derive(Clone, Serialize)]
