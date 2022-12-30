@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { SearchOutlined } from '@ant-design/icons';
-import { Drawer, FloatButton, Input, Select, message } from 'antd';
+import { Drawer, FloatButton, Input, Select, message, Badge, Button, Space } from 'antd';
 import styles from "./App.module.less";
 import { useRequest, useSize } from 'ahooks';
 import 'react-contexify/ReactContexify.css';
@@ -17,6 +17,7 @@ const defaultPageSize = 10;
 function App() {
   const containerRef = useRef(null);
   const footerRef = useRef(null);
+  const [downloadNifityCount, setDownloadNifityCount] = useState(0)
   const footerSize = useSize(footerRef);
   const extractHeight = 40 + (footerSize?.height ?? 0);
   const [pageSize, setPageSize] = useState<number>(defaultPageSize);
@@ -56,11 +57,13 @@ function App() {
 
   useEffect(() => {
     search({ pageSize });
+    appWindow.listeners
     const unlisten = appWindow.listen<DownloadEventPayload>('download-progress', (event) => {
       if (event.payload.progress === 1) {
+        console.log(JSON.stringify(event.payload.data))
+        setDownloadNifityCount((count) => count + 1);
         const info = event.payload.data;
         setData((data) => {
-          // const item = data.find(i => i.hash === info.hash && i.key === info.key && i.size === info.size && i.mime_type === info.mime_type);
           const index = data.findIndex(i => i.hash === info.hash && i.key === info.key && i.size === info.size && i.mime_type === info.mime_type);
           if (index !== -1) {
             data[index].downloaded = true;
@@ -73,13 +76,18 @@ function App() {
         // setData([...data]);
       }
     }).then((result) => {
-      console.log("监听成功");
+      return result;
     }).catch((err) => {
       console.log("监听失败");
+      return undefined;
     })
     return (() => {
-      unlisten.then(() => {
-        console.log("取消监听");
+      unlisten.then(result => {
+        if (result !== undefined) {
+          result();
+          console.log("取消监听");
+
+        }
       });
     })
   }, []);
@@ -95,6 +103,7 @@ function App() {
   };
 
   const showDrawer = () => {
+    setDownloadNifityCount(0);
     setOpen(true);
   };
 
@@ -118,20 +127,30 @@ function App() {
           loadMore={loadMore} download={download} pageSize={pageSize} />
       </div>
       <div ref={footerRef} className={styles.footer}>
-        <span className={styles.page}>
-          <Select defaultValue={defaultPageSize}
-            style={{ width: 120 }} onChange={value => setPageSize(value)}
-            options={pages}
-          />
-        </span>
-        <span  >总共加载：{data.length}项</span>
+        <Space>
+          <span >
+            <Badge count={downloadNifityCount} size="small" >
+              <Button icon={<DownloadOutlined />} type="primary" onClick={showDrawer} >
+              </Button ></Badge>
+          </span>
+          <span >
+            <Select defaultValue={defaultPageSize}
+              style={{ width: 120 }} onChange={value => setPageSize(value)}
+              options={pages}
+            />
+          </span>
+          <span  >总共加载：{data.length}项</span>
+        </Space>
+
       </div>
 
       <Menu id={MENU_ID}>
         <Item id="copy">预览</Item>
         <Item id="cut" >下载</Item>
       </Menu>
-      <FloatButton icon={<DownloadOutlined />} type="primary" onClick={showDrawer} />
+
+
+
       <Drawer title="下载" placement="right" onClose={onClose} open={open} size="large">
         <DownloadPanel />
       </Drawer>
