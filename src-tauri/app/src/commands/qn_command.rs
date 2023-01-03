@@ -1,7 +1,11 @@
-use crate::{error::TauriError, models::qn_file::QnFile, DbConnection};
+use crate::{
+    error::TauriError,
+    models::{download_info::DownloadInfo, qn_file::QnFile},
+    DbConnection,
+};
 use chrono::Utc;
 use entity::{download, prelude::Downloads};
-use futures::{future::ok, stream::TryStreamExt};
+use futures::stream::TryStreamExt;
 use humansize::{format_size, DECIMAL};
 use qiniu_sdk::{
     credential::Credential,
@@ -9,22 +13,17 @@ use qiniu_sdk::{
     objects::ObjectsManager,
 };
 use sea_orm::{
-    prelude::{ChronoDateTime, ChronoDateTimeWithTimeZone, DateTimeLocal, TimeDate, Uuid},
-    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set,
+    prelude::Uuid, ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, Set,
 };
-use serde::Serialize;
-use serde_json::json;
-use tauri::{AppHandle, Manager, State, Window};
+use tauri::{AppHandle, State, Window};
 use tracing::{info, trace};
+use uuid::uuid;
 const ACCESS_KEY: &str = "mElDt3TjoRM7iL5qpeZ15U4R9RGy3SBEqNTinKar";
 const SECRET_KEY: &str = "B5fcfvWOuQPZD0EKwVDvEfHk9FBcnRtgocxsMR1Q";
 const BUCKET_NAME: &str = "sc-download";
 const DOMAIN: &str = "download.yucunkeji.com";
-use std::{
-    path::{self},
-    str::FromStr,
-    vec,
-};
+use std::{fs, path::Path, str::FromStr, vec};
 #[tauri::command]
 pub async fn get_lists(
     marker: Option<String>,
@@ -135,7 +134,7 @@ pub async fn download(
                 window
                     .emit(
                         "download-progress",
-                        Payload {
+                        DownloadInfo {
                             data: download.clone(),
                             progress: transferred_bytes / total_bytes,
                         },
@@ -156,7 +155,6 @@ pub async fn download(
 
 #[tauri::command]
 pub async fn get_download_files(
-    app_handle: AppHandle,
     state: State<'_, DbConnection>,
 ) -> Result<Vec<download::Model>, TauriError> {
     let db = state.db.lock().unwrap().clone();
@@ -166,8 +164,18 @@ pub async fn get_download_files(
         .await?;
     Ok(downloads)
 }
-#[derive(Clone, Serialize)]
-struct Payload {
+#[tauri::command]
+pub async fn delete_download_file(
     data: download::Model,
-    progress: f64,
+    state: State<'_, DbConnection>,
+) -> Result<(), TauriError> {
+    let db = state.db.lock().unwrap().clone();
+    let id = data.id;
+    let file_path = data.path;
+    Downloads::delete_by_id(id).exec(&db).await?;
+    let file_path = Path::new(&file_path);
+    if file_path.exists() {
+        fs::remove_file(file_path)?;
+    }
+    Ok(())
 }

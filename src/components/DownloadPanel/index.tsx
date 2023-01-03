@@ -2,13 +2,15 @@ import { useInViewport, useMap, useRequest, useUpdate } from 'ahooks';
 import styles from './index.module.less';
 import { QiNiuApi } from '../../apis';
 import { useEffect, useRef, useState } from 'react';
-import { List, notification, Progress, Space } from 'antd';
+import { Button, List, notification, Progress, Space } from 'antd';
 import { open } from '@tauri-apps/api/shell';
-import { Download, DownloadEventPayload } from '../../models/File';
+import { Download, DownloadEventPayload, QnFile } from '../../models/File';
 import { transformFileType } from '../../utils/utils';
 import { appWindow } from '@tauri-apps/api/window';
 import dayjs from 'dayjs';
 import { EventEmitter } from 'ahooks/lib/useEventEmitter';
+import { DeleteOutlined } from '@ant-design/icons';
+
 interface Props {
     downloadPanelVisibilityEventEmitter: EventEmitter<boolean>
 }
@@ -63,7 +65,18 @@ function DownloadPanel(props: Props) {
         }
         open(file.path);
     }
-    var now = dayjs()
+    const deleteDownloadFile = (item: Download) => {
+        QiNiuApi.deleteDownloadFile(item).then(() => {
+            notification.success({
+                message: '删除成功'
+            });
+            search();
+        }).catch(() => {
+            notification.error({
+                message: '删除失败'
+            });
+        });
+    };
     return (
         <div ref={ref} className={styles['download-panel']}>
             <List
@@ -80,7 +93,9 @@ function DownloadPanel(props: Props) {
 
                             </Space>}
                         />
-                        <div></div>
+                        <div>
+                            {(map.get(JSON.stringify(item)) ?? 100) === 100 && <Button type="link" icon={<DeleteOutlined />} onClick={() => { deleteDownloadFile(item) }}></Button>}
+                        </div>
                     </List.Item>
                 )
                 }

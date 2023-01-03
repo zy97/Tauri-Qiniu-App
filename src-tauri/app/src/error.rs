@@ -1,10 +1,6 @@
 use qiniu_sdk::{download::DownloadError, objects::apis::http_client::ResponseError};
-use sea_orm::DatabaseConnection;
 use serde::Serialize;
-use std::{
-    io,
-    sync::{MutexGuard, PoisonError},
-};
+use std::io;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -17,8 +13,8 @@ pub enum TauriError {
     SeaDbErrpr(#[from] sea_orm::DbErr),
     #[error("download error: {0:?}")]
     InvalidHeader(#[from] DownloadError),
-    // #[error("unknown data store error")]
-    // Unknown,
+    #[error("uuid error: {0:?}")]
+    UuidError(#[from] uuid::Error),
     #[error("七牛请求错误: {0:?}")]
     Qiniu(#[from] ResponseError),
 }

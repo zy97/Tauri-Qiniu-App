@@ -46,6 +46,7 @@ entity = { path = "../entity" }
 migration = { path = "../migration" }
 futures = "0.3.25"
 chrono = "0.4.23"
+uuid = "1.2.2"
 [features]
 # by default Tauri runs in production mode
 # when `tauri dev` runs it is executed with `cargo run --no-default-features` if `devPath` is an URL

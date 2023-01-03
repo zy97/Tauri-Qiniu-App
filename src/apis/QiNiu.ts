@@ -11,3 +11,6 @@ export const downloadFile = (file: QnFile) => {
 export const getdownloadLists = () => {
     return invoke<Download[]>("get_download_files", {});
 }
+export const deleteDownloadFile = (data: Download) => {
+    return invoke<any>("delete_download_file", { data });
+}
