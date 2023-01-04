@@ -24,6 +24,7 @@ qiniu-sdk = { version = "0.2.2", features = [
     "credential",
     "download",
     "async",
+    "upload",
 ] }
 humansize = "2.1.2"
 thiserror = "1.0.38"

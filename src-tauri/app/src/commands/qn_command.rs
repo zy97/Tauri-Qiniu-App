@@ -1,16 +1,24 @@
 use crate::{
     error::TauriError,
-    models::{download_info::DownloadInfo, qn_file::QnFile},
+    models::{
+        download_info::DownloadInfo,
+        qn_file::QnFile,
+        upload_info::{UploadInfo, UploadStatus},
+    },
     DbConnection,
 };
 use chrono::Utc;
-use entity::{download, prelude::Downloads};
+use entity::{download, prelude::Downloads, prelude::Uploads, upload};
 use futures::stream::TryStreamExt;
 use humansize::{format_size, DECIMAL};
 use qiniu_sdk::{
     credential::Credential,
     download::{DownloadManager, StaticDomainsUrlsGenerator},
     objects::ObjectsManager,
+    upload::{
+        AutoUploader, AutoUploaderObjectParams, UploadManager, UploadTokenSigner,
+        UploaderWithCallbacks,
+    },
 };
 use sea_orm::{
     prelude::Uuid, ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter,
@@ -18,12 +26,16 @@ use sea_orm::{
 };
 use tauri::{AppHandle, State, Window};
 use tracing::{info, trace};
-use uuid::uuid;
 const ACCESS_KEY: &str = "mElDt3TjoRM7iL5qpeZ15U4R9RGy3SBEqNTinKar";
 const SECRET_KEY: &str = "B5fcfvWOuQPZD0EKwVDvEfHk9FBcnRtgocxsMR1Q";
 const BUCKET_NAME: &str = "sc-download";
 const DOMAIN: &str = "download.yucunkeji.com";
-use std::{fs, path::Path, str::FromStr, vec};
+use std::{
+    fs::{self, File},
+    path::{Path, PathBuf},
+    time::Duration,
+    vec,
+};
 #[tauri::command]
 pub async fn get_lists(
     marker: Option<String>,
@@ -178,4 +190,60 @@ pub async fn delete_download_file(
         fs::remove_file(file_path)?;
     }
     Ok(())
+}
+#[tauri::command]
+pub async fn upload_file(
+    file_path: PathBuf,
+    window: Window,
+    state: State<'_, DbConnection>,
+) -> Result<UploadStatus, TauriError> {
+    let connection = state.db.lock().unwrap().clone();
+    if file_path.is_dir() {
+        return Ok(UploadStatus::DirNotSupport);
+    }
+    let uploaded = Uploads::find()
+        .filter(upload::Column::Path.eq(file_path.display().to_string()))
+        .count(&connection)
+        .await?
+        != 0;
+    if uploaded {
+        return Ok(UploadStatus::Uploaded);
+    }
+    let upload = upload::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        path: Set(String::from(&file_path.display().to_string())),
+    };
+    let upload = upload.insert(&connection).await.unwrap();
+    let credential = Credential::new(ACCESS_KEY, SECRET_KEY);
+    let upload_manager = UploadManager::builder(UploadTokenSigner::new_credential_provider(
+        credential,
+        BUCKET_NAME,
+        Duration::from_secs(3600),
+    ))
+    .build();
+    let mut uploader: AutoUploader = upload_manager.auto_uploader();
+
+    let params = AutoUploaderObjectParams::builder()
+        .object_name(file_path.file_name().unwrap().to_str().unwrap())
+        .file_name(file_path.file_name().unwrap().to_str().unwrap())
+        .build();
+    uploader
+        .on_upload_progress(move |e| {
+            let transferred_bytes = e.transferred_bytes() as f64;
+            let total_bytes = e.total_bytes().unwrap_or(transferred_bytes as u64) as f64;
+            window
+                .emit(
+                    "upload-progress",
+                    UploadInfo {
+                        data: upload.clone(),
+                        progress: transferred_bytes / total_bytes,
+                    },
+                )
+                .unwrap();
+            info!("已上传：{}/{}", total_bytes, transferred_bytes);
+            Ok(())
+        })
+        .async_upload_path(file_path, params)
+        .await?;
+    Ok(UploadStatus::Uploading)
 }

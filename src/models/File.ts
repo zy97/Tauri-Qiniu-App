@@ -20,3 +20,16 @@ export interface DownloadEventPayload {
     progress: number,
     data: Download
 }
+export interface UploadEventPayload {
+    progress: number,
+    data: Upload
+}
+export interface Upload {
+    id: string,
+    path: string,
+}
+export enum UploadStatus {
+    "Uploading" = "Uploading",
+    "Uploaded" = "Uploaded",
+    "DirNotSupport" = "DirNotSupport"
+}

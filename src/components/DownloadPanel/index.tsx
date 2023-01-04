@@ -18,8 +18,7 @@ function DownloadPanel(props: Props) {
     const { downloadPanelVisibilityEventEmitter } = props;
     const ref = useRef(null);
     const [list, setList] = useState<Download[]>();
-    const update = useUpdate();
-    const [map, { set, get }] = useMap<string, number>();
+    const [map, { set }] = useMap<string, number>();
     const [inViewport] = useInViewport(ref);
     useEffect(() => {
         downloadPanelVisibilityEventEmitter.emit(true);

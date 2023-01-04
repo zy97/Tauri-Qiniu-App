@@ -26,6 +26,16 @@ impl MigrationTrait for Migration {
                     )
                     .to_owned(),
             )
+            .await?;
+        manager
+            .create_table(
+                Table::create()
+                    .table(Upload::Table)
+                    .if_not_exists()
+                    .col(ColumnDef::new(Download::Id).uuid().not_null().primary_key())
+                    .col(ColumnDef::new(Download::Path).string().not_null())
+                    .to_owned(),
+            )
             .await
     }
 
@@ -34,6 +44,9 @@ impl MigrationTrait for Migration {
 
         manager
             .drop_table(Table::drop().table(Download::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Upload::Table).to_owned())
             .await
     }
 }
@@ -49,4 +62,10 @@ enum Download {
     MimeType,
     Path,
     DownloadDate,
+}
+#[derive(Iden)]
+enum Upload {
+    Table,
+    Id,
+    Path,
 }

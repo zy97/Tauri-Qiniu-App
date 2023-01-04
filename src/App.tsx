@@ -1,20 +1,75 @@
-import { useEffect, useRef, useState } from 'react'
+import { DragEventHandler, useCallback, useEffect, useRef, useState } from 'react'
 import { SearchOutlined } from '@ant-design/icons';
-import { Drawer, Input, Select, message, Badge, Button, Space } from 'antd';
+import { Drawer, Input, Select, message, Badge, Button, Space, notification, Progress } from 'antd';
 import styles from "./App.module.less";
-import { useEventEmitter, useGetState, useRequest, useSize } from 'ahooks';
+import { useAsyncEffect, useEventEmitter, useGetState, useRequest, useSize } from 'ahooks';
 import 'react-contexify/ReactContexify.css';
 import { Item, Menu, useContextMenu } from 'react-contexify';
-import { DownloadEventPayload, QnFile } from './models/File';
+import { DownloadEventPayload, QnFile, UploadEventPayload, UploadStatus } from './models/File';
 import { QiNiuApi } from './apis';
-import { DownloadOutlined } from '@ant-design/icons';
+import { DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 import DownloadPanel from './components/DownloadPanel';
 import InfiniteScrollList from './components/InfiniteScrollList';
 import { appWindow } from '@tauri-apps/api/window';
+import Upload from 'antd/es/upload/Upload';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { useDrop, useEffectOnce } from 'react-use';
+import { dialog, event } from "@tauri-apps/api";
+import Dropzone, { FileWithPath, useDropzone, } from 'react-dropzone';
 const MENU_ID = 'contextMenu';
 const pages = [{ label: "10项", value: 10 }, { label: "20项", value: 20 }, { label: "50项", value: 50 }, { label: "100项", value: 100 }];
 const defaultPageSize = 10;
 function App() {
+  //#region 上传相关
+
+  useAsyncEffect(async function* () {
+    toast("Wow so easy!", { closeOnClick: false, closeButton: false, autoClose: false, });
+    const unlistenDropFile = await event.listen<string[]>(event.TauriEvent.WINDOW_FILE_DROP, async e => {
+      processUpload(await QiNiuApi.uploadFile(e.payload[0]))
+    });
+    const unlistenUploadProgress = await appWindow.listen<UploadEventPayload>('upload-progress', (event) => {
+      if (event.payload.progress === 1) {
+        // const info = event.payload.data;
+        // setData((data) => {
+        //   const index = data.findIndex(i => i.hash === info.hash && i.key === info.key && i.size === info.size && i.mime_type === info.mime_type);
+        //   if (index !== -1) {
+        //     data[index].downloaded = true;
+        //   }
+        //   else {
+        //     console.log("下载完成，但是没有找到对应的文件", data, info);
+        //   }
+        //   return [...data];
+        // });
+      }
+    });
+    yield;
+    unlistenDropFile();
+    unlistenUploadProgress();
+  }, [])
+  const showFilePickerWindow = async () => {
+    const selectFile = await dialog.open({});
+    if (selectFile !== null && !Array.isArray(selectFile)) {
+      processUpload(await QiNiuApi.uploadFile(selectFile));
+    }
+  }
+  const processUpload = (status: UploadStatus) => {
+    switch (status) {
+      case UploadStatus.DirNotSupport:
+        message.error("不支持上传文件夹");
+        break;
+      case UploadStatus.Uploaded:
+        message.error("文件已经上传");
+        break;
+      default:
+        break;
+    }
+  }
+
+  //#endregion
+
+
+  const dropRef = useRef(null);
   const containerRef = useRef(null);
   const footerRef = useRef(null);
   const [downloadNifityCount, setDownloadNifityCount] = useState(0)
@@ -22,6 +77,7 @@ function App() {
   const extractHeight = 40 + (footerSize?.height ?? 0);
   const [pageSize, setPageSize] = useState<number>(defaultPageSize);
   const [open, setOpen] = useState(false);
+
   const { show } = useContextMenu({
     id: MENU_ID,
   });
@@ -33,9 +89,8 @@ function App() {
       }
     })
   }
-
   const containerSize = useSize(containerRef);
-  const { data: searchResult, run: search, loading } = useRequest(QiNiuApi.getLists, {
+  const { data: searchResult, run: search } = useRequest(QiNiuApi.getLists, {
     debounceWait: 50,
     manual: true,
     onSuccess: (res) => { message.success(`${res.length} 个文件查询成功`); }
@@ -48,7 +103,6 @@ function App() {
           array.push(item);
         }
       }
-      console.log(array);
       setData([...array]);
     }
   }, [searchResult]);
@@ -76,7 +130,6 @@ function App() {
           }
           return [...data];
         });
-        // setData([...data]);
       }
     }).then((result) => {
       return result;
@@ -84,18 +137,21 @@ function App() {
       console.log("监听失败");
       return undefined;
     })
+
     return (() => {
       unlisten.then(result => {
         if (result !== undefined) {
           result();
-          console.log("取消监听");
 
         }
       });
+
     })
   }, []);
   const [data, setData] = useState<QnFile[]>([]);
+  const uploadProcess = () => {
 
+  };
   const searchQueryChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
     const txt = e.target.value;
     if (txt !== searchTxt) {
@@ -109,6 +165,7 @@ function App() {
     setDownloadNifityCount(0);
     setOpen(true);
   };
+
 
   const onClose = () => {
     setOpen(false);
@@ -125,6 +182,19 @@ function App() {
     console.log("downloadPanelVisibilityEventEmitter$", visibility);
     setdownloadPanelVisibility(visibility);
   });
+  const handleItemClick = (data: { id: String, event: any, props: any }) => {
+    switch (data.id) {
+      case "copy":
+        console.log(data.event, data.props)
+        break;
+      case "cut":
+        console.log(data.event, data.props);
+        break;
+      default:
+        console.log(data.event, data.props);
+    }
+  }
+
   const [downloadPanelVisibility, setdownloadPanelVisibility, getDownloadPanelVisibility] = useGetState(false);
   return (
     <div className={styles.container} ref={containerRef} >
@@ -137,6 +207,12 @@ function App() {
       </div>
       <div ref={footerRef} className={styles.footer}>
         <Space>
+          <span>
+            <Badge count={downloadNifityCount} size="small" >
+              <Button icon={<UploadOutlined />} type="primary" onClick={showFilePickerWindow} >
+              </Button >
+            </Badge>
+          </span>
           <span >
             <Badge count={downloadNifityCount} size="small" >
               <Button icon={<DownloadOutlined />} type="primary" onClick={showDrawer} >
@@ -154,15 +230,12 @@ function App() {
       </div>
 
       <Menu id={MENU_ID}>
-        <Item id="copy">预览</Item>
-        <Item id="cut" >下载</Item>
+        <Item id="delete" onClick={handleItemClick}>删除</Item>
       </Menu>
-
-
-
       <Drawer title="下载" placement="right" onClose={onClose} open={open} size="large">
         <DownloadPanel downloadPanelVisibilityEventEmitter={downloadPanelVisibilityEventEmitter$} />
       </Drawer>
+      <ToastContainer />
     </div >
   )
 }

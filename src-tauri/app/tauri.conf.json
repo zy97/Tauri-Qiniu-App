@@ -60,7 +60,8 @@
         "height": 800,
         "resizable": true,
         "title": "Tauri Qiniu App",
-        "minWidth": 800
+        "minWidth": 800,
+        "fileDropEnabled": true
       }
     ],
     "systemTray": {
