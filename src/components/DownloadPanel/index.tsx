@@ -10,6 +10,7 @@ import { appWindow } from '@tauri-apps/api/window';
 import dayjs from 'dayjs';
 import { EventEmitter } from 'ahooks/lib/useEventEmitter';
 import { DeleteOutlined } from '@ant-design/icons';
+import { app } from '@tauri-apps/api';
 
 interface Props {
     downloadPanelVisibilityEventEmitter: EventEmitter<boolean>
@@ -26,14 +27,11 @@ function DownloadPanel(props: Props) {
             const key = JSON.stringify(event.payload.data);
             const value = Math.round(event.payload.progress * 100);
             set(key, value);
-        }).then((result) => {
-            console.log("监听成功");
-        }).catch((err) => {
-            console.log("监听失败");
-        })
+        });
 
         return (() => {
-            unlisten.then(() => {
+            unlisten.then((e) => {
+                e();
                 console.log("取消监听");
             });
             downloadPanelVisibilityEventEmitter.emit(false);

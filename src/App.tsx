@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { SearchOutlined } from '@ant-design/icons';
 import { Drawer, Input, Select, message, Badge, Button, Space } from 'antd';
 import styles from "./App.module.less";
-import { useAsyncEffect, useEventEmitter, useGetState, useRequest, useSize } from 'ahooks';
+import { useEventEmitter, useGetState, useRequest, useSize } from 'ahooks';
 import 'react-contexify/ReactContexify.css';
 import { DownloadEventPayload, QnFile, UploadEventPayload, UploadStatus } from './models/File';
 import { QiNiuApi } from './apis';
@@ -13,15 +13,18 @@ import { appWindow } from '@tauri-apps/api/window';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { dialog, event } from "@tauri-apps/api";
+//不用ahook的异步useeffect是因为，热更新之后会少执行一次清理，这就导致多次热更新会多次监听拖放事件
 
 function App() {
   //#region 上传相关
-  useAsyncEffect(async function* () {
-    toast("Wow so easy!", { closeOnClick: false, closeButton: false, autoClose: false, });
-    const unlistenDropFile = await event.listen<string[]>(event.TauriEvent.WINDOW_FILE_DROP, async e => {
+  useEffect(() => {
+    console.log("listen");
+    const unlistenDropFile = event.listen<string[]>(event.TauriEvent.WINDOW_FILE_DROP, async e => {
+      console.log("file", e.payload)
       processUpload(await QiNiuApi.uploadFile(e.payload[0]))
     });
-    const unlistenUploadProgress = await appWindow.listen<UploadEventPayload>('upload-progress', (event) => {
+
+    const unlistenUploadProgress = appWindow.listen<UploadEventPayload>('upload-progress', (event) => {
       if (event.payload.progress === 1) {
         // const info = event.payload.data;
         // setData((data) => {
@@ -36,9 +39,13 @@ function App() {
         // });
       }
     });
-    yield;
-    unlistenDropFile();
-    unlistenUploadProgress();
+
+
+    return (() => {
+      unlistenDropFile.then((e) => { e(); console.log("unlisten") }).catch(err => console.log(err));
+      unlistenUploadProgress.then();
+
+    })
   }, [])
   const showFilePickerWindow = async () => {
     const selectFile = await dialog.open({});
@@ -54,6 +61,9 @@ function App() {
       case UploadStatus.Uploaded:
         message.error("文件已经上传");
         break;
+      case UploadStatus.Uploading:
+        toast("Wow so easy!", { closeOnClick: false, closeButton: false, autoClose: false, });
+
       default:
         break;
     }
@@ -80,8 +90,8 @@ function App() {
   const download = (item: QnFile) => {
     QiNiuApi.downloadFile(item);
   }
-  useAsyncEffect(async function* () {
-    const unlisten = await appWindow.listen<DownloadEventPayload>('download-progress', (event) => {
+  useEffect(() => {
+    const unlisten = appWindow.listen<DownloadEventPayload>('download-progress', (event) => {
       if (event.payload.progress === 1) {
         console.log(JSON.stringify(event.payload.data))
         console.log(getDownloadPanelVisibility());
@@ -101,8 +111,8 @@ function App() {
         });
       }
     });
-    yield;
-    unlisten();
+    return (() => { unlisten.then(e => e()) });
+
   }, [])
   //#endregion
 
@@ -144,13 +154,13 @@ function App() {
 
   //#endregion
   const containerRef = useRef(null);
+  const containerSize = useSize(containerRef);
   const footerRef = useRef(null);
   const footerSize = useSize(footerRef);
   const extractHeight = 40 + (footerSize?.height ?? 0);
-  const containerSize = useSize(containerRef);
   return (
     <div className={styles.container} ref={containerRef} >
-      <Input className={styles.searchInput} size="large" placeholder="输入搜索的文件名字" prefix={<SearchOutlined />} onChange={searchQueryChanged} />
+      <Input className={styles.searchInput} size="large" placeholder="输入搜索的文件名字1" prefix={<SearchOutlined />} onChange={searchQueryChanged} />
       <div>
         <InfiniteScrollList dataSource={data} newItems={searchResult}
           containerHeight={containerSize?.height} extractHeight={extractHeight}
