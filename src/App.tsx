@@ -1,27 +1,22 @@
-import { DragEventHandler, useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { SearchOutlined } from '@ant-design/icons';
-import { Drawer, Input, Select, message, Badge, Button, Space, notification, Progress } from 'antd';
+import { Drawer, Input, Select, message, Badge, Button, Space } from 'antd';
 import styles from "./App.module.less";
 import { useAsyncEffect, useEventEmitter, useGetState, useRequest, useSize } from 'ahooks';
 import 'react-contexify/ReactContexify.css';
-import { Item, Menu, useContextMenu } from 'react-contexify';
 import { DownloadEventPayload, QnFile, UploadEventPayload, UploadStatus } from './models/File';
 import { QiNiuApi } from './apis';
 import { DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 import DownloadPanel from './components/DownloadPanel';
 import InfiniteScrollList from './components/InfiniteScrollList';
 import { appWindow } from '@tauri-apps/api/window';
-import Upload from 'antd/es/upload/Upload';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useDrop, useEffectOnce } from 'react-use';
 import { dialog, event } from "@tauri-apps/api";
-import Dropzone, { FileWithPath, useDropzone, } from 'react-dropzone';
 const pages = [{ label: "10项", value: 10 }, { label: "20项", value: 20 }, { label: "50项", value: 50 }, { label: "100项", value: 100 }];
 const defaultPageSize = 10;
 function App() {
   //#region 上传相关
-
   useAsyncEffect(async function* () {
     toast("Wow so easy!", { closeOnClick: false, closeButton: false, autoClose: false, });
     const unlistenDropFile = await event.listen<string[]>(event.TauriEvent.WINDOW_FILE_DROP, async e => {
@@ -64,42 +59,28 @@ function App() {
         break;
     }
   }
-
   //#endregion
-  const containerRef = useRef(null);
-  const footerRef = useRef(null);
-  const [downloadNifityCount, setDownloadNifityCount] = useState(0)
-  const footerSize = useSize(footerRef);
-  const extractHeight = 40 + (footerSize?.height ?? 0);
-  const [pageSize, setPageSize] = useState<number>(defaultPageSize);
+
+  //#region 下载相关
   const [open, setOpen] = useState(false);
-
-
-
-  const containerSize = useSize(containerRef);
-  const { data: searchResult, run: search } = useRequest(QiNiuApi.getLists, {
-    debounceWait: 50,
-    manual: true,
-    onSuccess: (res) => { message.success(`${res.length} 个文件查询成功`); }
+  const [downloadNifityCount, setDownloadNifityCount] = useState(0)
+  const [downloadPanelVisibility, setdownloadPanelVisibility, getDownloadPanelVisibility] = useGetState(false);
+  const downloadPanelVisibilityEventEmitter$ = useEventEmitter<boolean>();
+  downloadPanelVisibilityEventEmitter$.useSubscription(visibility => {
+    setdownloadPanelVisibility(visibility);
   });
-  useEffect(() => {
-    if (searchResult) {
-      const array = data;
-      for (const item of searchResult) {
-        if (array.find(i => i.key === item.key && i.hash === item.hash && i.size === item.size && i.mime_type === item.mime_type) === undefined) {
-          array.push(item);
-        }
-      }
-      setData([...array]);
-    }
-  }, [searchResult]);
-
-  const [searchTxt, setSearchTxt] = useState("");
-
-  useEffect(() => {
-    search({ pageSize });
-    appWindow.listeners
-    const unlisten = appWindow.listen<DownloadEventPayload>('download-progress', (event) => {
+  const showDrawer = () => {
+    setDownloadNifityCount(0);
+    setOpen(true);
+  };
+  const onCloseDrawer = () => {
+    setOpen(false);
+  };
+  const download = (item: QnFile) => {
+    QiNiuApi.downloadFile(item);
+  }
+  useAsyncEffect(async function* () {
+    const unlisten = await appWindow.listen<DownloadEventPayload>('download-progress', (event) => {
       if (event.payload.progress === 1) {
         console.log(JSON.stringify(event.payload.data))
         console.log(getDownloadPanelVisibility());
@@ -118,25 +99,16 @@ function App() {
           return [...data];
         });
       }
-    }).then((result) => {
-      return result;
-    }).catch((err) => {
-      console.log("监听失败");
-      return undefined;
-    })
+    });
+    yield;
+    unlisten();
+  }, [])
+  //#endregion
 
-    return (() => {
-      unlisten.then(result => {
-        if (result !== undefined) {
-          result();
-
-        }
-      });
-
-    })
-  }, []);
+  //#region 获取文件列表相关
+  const [pageSize, setPageSize] = useState<number>(defaultPageSize);
+  const [searchTxt, setSearchTxt] = useState("");
   const [data, setData] = useState<QnFile[]>([]);
-
   const searchQueryChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
     const txt = e.target.value;
     if (txt !== searchTxt) {
@@ -145,34 +117,40 @@ function App() {
       search({ query: txt, pageSize });
     }
   };
-
-  const showDrawer = () => {
-    setDownloadNifityCount(0);
-    setOpen(true);
-  };
-
-
-  const onClose = () => {
-    setOpen(false);
-  };
+  const { data: searchResult, run: search } = useRequest(QiNiuApi.getLists, {
+    debounceWait: 50,
+    manual: true,
+    onSuccess: (res) => { message.success(`${res.length} 个文件查询成功`); }
+  });
   const loadMore = () => {
     let marker = data[data.length - 1].marker;
     search({ marker, query: searchTxt, pageSize });
   }
-  const download = (item: QnFile) => {
-    QiNiuApi.downloadFile(item);
-  }
-  const downloadPanelVisibilityEventEmitter$ = useEventEmitter<boolean>();
-  downloadPanelVisibilityEventEmitter$.useSubscription(visibility => {
-    console.log("downloadPanelVisibilityEventEmitter$", visibility);
-    setdownloadPanelVisibility(visibility);
-  });
+  useEffect(() => {
+    if (searchResult) {
+      const array = data;
+      for (const item of searchResult) {
+        if (array.find(i => i.key === item.key && i.hash === item.hash && i.size === item.size && i.mime_type === item.mime_type) === undefined) {
+          array.push(item);
+        }
+      }
+      setData([...array]);
+    }
+  }, [searchResult]);
+  useEffect(() => {
+    search({ pageSize });
+  }, []);
+
+  //#endregion
+  const containerRef = useRef(null);
+  const footerRef = useRef(null);
+  const footerSize = useSize(footerRef);
+  const extractHeight = 40 + (footerSize?.height ?? 0);
+  const containerSize = useSize(containerRef);
 
 
-  const [downloadPanelVisibility, setdownloadPanelVisibility, getDownloadPanelVisibility] = useGetState(false);
   return (
     <div className={styles.container} ref={containerRef} >
-
       <Input className={styles.searchInput} size="large" placeholder="输入搜索的文件名字" prefix={<SearchOutlined />} onChange={searchQueryChanged} />
       <div>
         <InfiniteScrollList dataSource={data} newItems={searchResult}
@@ -200,11 +178,8 @@ function App() {
           </span>
           <span  >总共加载：{data.length}项</span>
         </Space>
-
       </div>
-
-
-      <Drawer title="下载" placement="right" onClose={onClose} open={open} size="large">
+      <Drawer title="下载" placement="right" onClose={onCloseDrawer} open={open} size="large">
         <DownloadPanel downloadPanelVisibilityEventEmitter={downloadPanelVisibilityEventEmitter$} />
       </Drawer>
       <ToastContainer />
