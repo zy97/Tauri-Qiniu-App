@@ -21,8 +21,8 @@ use qiniu_sdk::{
     },
 };
 use sea_orm::{
-    prelude::Uuid, ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, Set,
+    prelude::Uuid, ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, PaginatorTrait,
+    QueryFilter, QueryOrder, Set,
 };
 use tauri::{AppHandle, State, Window};
 use tracing::{info, trace};
@@ -197,6 +197,7 @@ pub async fn upload_file(
     window: Window,
     state: State<'_, DbConnection>,
 ) -> Result<UploadStatus, TauriError> {
+    info!("upload_file:{}", file_path.display());
     let connection = state.db.lock().unwrap().clone();
     if file_path.is_dir() {
         return Ok(UploadStatus::DirNotSupport);
@@ -209,11 +210,13 @@ pub async fn upload_file(
     if uploaded {
         return Ok(UploadStatus::Uploaded);
     }
-    let upload = upload::ActiveModel {
+    let mut upload = upload::ActiveModel {
         id: Set(Uuid::new_v4()),
+        key: ActiveValue::NotSet,
+        hash: ActiveValue::NotSet,
         path: Set(String::from(&file_path.display().to_string())),
     };
-    let upload = upload.insert(&connection).await.unwrap();
+    let insert_result = upload.clone().insert(&connection).await.unwrap();
     let credential = Credential::new(ACCESS_KEY, SECRET_KEY);
     let upload_manager = UploadManager::builder(UploadTokenSigner::new_credential_provider(
         credential,
@@ -227,7 +230,7 @@ pub async fn upload_file(
         .object_name(file_path.file_name().unwrap().to_str().unwrap())
         .file_name(file_path.file_name().unwrap().to_str().unwrap())
         .build();
-    uploader
+    let result = uploader
         .on_upload_progress(move |e| {
             let transferred_bytes = e.transferred_bytes() as f64;
             let total_bytes = e.total_bytes().unwrap_or(transferred_bytes as u64) as f64;
@@ -235,7 +238,7 @@ pub async fn upload_file(
                 .emit(
                     "upload-progress",
                     UploadInfo {
-                        data: upload.clone(),
+                        data: insert_result.clone(),
                         progress: transferred_bytes / total_bytes,
                     },
                 )
@@ -245,5 +248,40 @@ pub async fn upload_file(
         })
         .async_upload_path(file_path, params)
         .await?;
+    let key = result["key"].as_str();
+    let hask = result["hash"].as_str();
+    match key {
+        Some(key) => {
+            let hash = hask.unwrap();
+            upload.key = Set(Some(key.to_owned()));
+            upload.hash = Set(Some(hash.to_owned()));
+            upload.update(&connection).await?;
+        }
+        None => {}
+    }
+
+    info!("upload result: {:?}", result);
+
     Ok(UploadStatus::Uploading)
+}
+
+#[tauri::command]
+pub async fn delete_file(
+    key: &str,
+    state: tauri::State<'_, DbConnection>,
+) -> Result<(), TauriError> {
+    let connection = state.db.lock().unwrap().clone();
+    let credential = Credential::new(ACCESS_KEY, SECRET_KEY);
+    let object_manager = ObjectsManager::new(credential);
+    let bucket = object_manager.bucket(BUCKET_NAME);
+    let upload = Uploads::find()
+        .filter(upload::Column::Key.eq(key))
+        .one(&connection)
+        .await?;
+    if let Some(data) = upload {
+        let data: upload::ActiveModel = data.into();
+        Uploads::delete(data).exec(&connection).await?;
+    }
+    bucket.delete_object(key).async_call().await?;
+    Ok(())
 }

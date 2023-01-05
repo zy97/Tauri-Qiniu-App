@@ -16,3 +16,6 @@ export const getdownloadLists = () => {
 export const deleteDownloadFile = (data: Download) => {
     return invoke<any>("delete_download_file", { data });
 }
+export const deleteFile = (key: string) => {
+    return invoke<any>("delete_file", { key });
+}

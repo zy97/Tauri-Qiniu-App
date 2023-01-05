@@ -17,7 +17,6 @@ import 'react-toastify/dist/ReactToastify.css';
 import { useDrop, useEffectOnce } from 'react-use';
 import { dialog, event } from "@tauri-apps/api";
 import Dropzone, { FileWithPath, useDropzone, } from 'react-dropzone';
-const MENU_ID = 'contextMenu';
 const pages = [{ label: "10项", value: 10 }, { label: "20项", value: 20 }, { label: "50项", value: 50 }, { label: "100项", value: 100 }];
 const defaultPageSize = 10;
 function App() {
@@ -67,9 +66,6 @@ function App() {
   }
 
   //#endregion
-
-
-  const dropRef = useRef(null);
   const containerRef = useRef(null);
   const footerRef = useRef(null);
   const [downloadNifityCount, setDownloadNifityCount] = useState(0)
@@ -78,17 +74,8 @@ function App() {
   const [pageSize, setPageSize] = useState<number>(defaultPageSize);
   const [open, setOpen] = useState(false);
 
-  const { show } = useContextMenu({
-    id: MENU_ID,
-  });
-  const handleContextMenu = (event: any) => {
-    show({
-      event,
-      props: {
-        key: 'value'
-      }
-    })
-  }
+
+
   const containerSize = useSize(containerRef);
   const { data: searchResult, run: search } = useRequest(QiNiuApi.getLists, {
     debounceWait: 50,
@@ -149,9 +136,7 @@ function App() {
     })
   }, []);
   const [data, setData] = useState<QnFile[]>([]);
-  const uploadProcess = () => {
 
-  };
   const searchQueryChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
     const txt = e.target.value;
     if (txt !== searchTxt) {
@@ -182,25 +167,14 @@ function App() {
     console.log("downloadPanelVisibilityEventEmitter$", visibility);
     setdownloadPanelVisibility(visibility);
   });
-  const handleItemClick = (data: { id: String, event: any, props: any }) => {
-    switch (data.id) {
-      case "copy":
-        console.log(data.event, data.props)
-        break;
-      case "cut":
-        console.log(data.event, data.props);
-        break;
-      default:
-        console.log(data.event, data.props);
-    }
-  }
+
 
   const [downloadPanelVisibility, setdownloadPanelVisibility, getDownloadPanelVisibility] = useGetState(false);
   return (
     <div className={styles.container} ref={containerRef} >
 
       <Input className={styles.searchInput} size="large" placeholder="输入搜索的文件名字" prefix={<SearchOutlined />} onChange={searchQueryChanged} />
-      <div onContextMenu={handleContextMenu} >
+      <div>
         <InfiniteScrollList dataSource={data} newItems={searchResult}
           containerHeight={containerSize?.height} extractHeight={extractHeight}
           loadMore={loadMore} download={download} pageSize={pageSize} />
@@ -229,9 +203,7 @@ function App() {
 
       </div>
 
-      <Menu id={MENU_ID}>
-        <Item id="delete" onClick={handleItemClick}>删除</Item>
-      </Menu>
+
       <Drawer title="下载" placement="right" onClose={onClose} open={open} size="large">
         <DownloadPanel downloadPanelVisibilityEventEmitter={downloadPanelVisibilityEventEmitter$} />
       </Drawer>

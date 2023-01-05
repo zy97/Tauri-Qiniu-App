@@ -14,7 +14,7 @@ use tauri::{
 use tracing::log;
 mod error;
 use crate::commands::qn_command::{
-    delete_download_file, download, get_download_files, upload_file,
+    delete_download_file, delete_file, download, get_download_files, upload_file,
 };
 pub mod models;
 use migration::{Migrator, MigratorTrait};
@@ -75,7 +75,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             download,
             get_download_files,
             delete_download_file,
-            upload_file
+            upload_file,
+            delete_file
         ])
         .build(generate_context!())
         .expect("error while building tauri application")

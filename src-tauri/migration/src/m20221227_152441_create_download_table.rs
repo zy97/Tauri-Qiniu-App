@@ -32,8 +32,10 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Upload::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(Download::Id).uuid().not_null().primary_key())
-                    .col(ColumnDef::new(Download::Path).string().not_null())
+                    .col(ColumnDef::new(Upload::Id).uuid().not_null().primary_key())
+                    .col(ColumnDef::new(Upload::Key).string())
+                    .col(ColumnDef::new(Upload::Hash).string())
+                    .col(ColumnDef::new(Upload::Path).string().not_null())
                     .to_owned(),
             )
             .await
@@ -67,5 +69,7 @@ enum Download {
 enum Upload {
     Table,
     Id,
+    Key,
+    Hash,
     Path,
 }
