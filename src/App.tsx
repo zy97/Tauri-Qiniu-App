@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { SearchOutlined } from '@ant-design/icons';
-import { Drawer, Input, Select, message, Badge, Button, Space } from 'antd';
+import { Drawer, Input, Select, message, Badge, Button, Space, Tooltip } from 'antd';
 import styles from "./App.module.less";
-import { useEventEmitter, useGetState, useRequest, useSize } from 'ahooks';
+import { useEventEmitter, useGetState, useMap, useRequest, useSize } from 'ahooks';
 import 'react-contexify/ReactContexify.css';
 import { DownloadEventPayload, QnFile, UploadEventPayload, UploadStatus } from './models/File';
 import { QiNiuApi } from './apis';
@@ -10,50 +10,41 @@ import { DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 import DownloadPanel from './components/DownloadPanel';
 import InfiniteScrollList from './components/InfiniteScrollList';
 import { appWindow } from '@tauri-apps/api/window';
-import { ToastContainer, toast } from 'react-toastify';
+import { ToastContainer, toast, Id } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { dialog, event } from "@tauri-apps/api";
 //不用ahook的异步useeffect是因为，热更新之后会少执行一次清理，这就导致多次热更新会多次监听拖放事件
 
 function App() {
   //#region 上传相关
+  const [map, { set, get }] = useMap<string, Id>();
   useEffect(() => {
-    console.log("listen");
     const unlistenDropFile = event.listen<string[]>(event.TauriEvent.WINDOW_FILE_DROP, async e => {
-      console.log("file", e.payload)
-      processUpload(await QiNiuApi.uploadFile(e.payload[0]))
+      const file = e.payload[0];
+      processUpload(file, await QiNiuApi.uploadFile(file))
     });
-
     const unlistenUploadProgress = appWindow.listen<UploadEventPayload>('upload-progress', (event) => {
-      if (event.payload.progress === 1) {
-        // const info = event.payload.data;
-        // setData((data) => {
-        //   const index = data.findIndex(i => i.hash === info.hash && i.key === info.key && i.size === info.size && i.mime_type === info.mime_type);
-        //   if (index !== -1) {
-        //     data[index].downloaded = true;
-        //   }
-        //   else {
-        //     console.log("下载完成，但是没有找到对应的文件", data, info);
-        //   }
-        //   return [...data];
-        // });
+      const data = event.payload
+      if (data.progress === 1) {
+        const id = get(data.data.path)!;
+        toast.done(id)
+      } else {
+        const path = data.data.path;
+        toast.update(get(path)!, { progress: data.progress });
       }
     });
-
-
     return (() => {
-      unlistenDropFile.then((e) => { e(); console.log("unlisten") }).catch(err => console.log(err));
-      unlistenUploadProgress.then();
-
+      unlistenDropFile.then(e => e()).catch(err => console.log(err));
+      unlistenUploadProgress.then(e => e()).catch(err => console.log(err));
     })
   }, [])
   const showFilePickerWindow = async () => {
     const selectFile = await dialog.open({});
     if (selectFile !== null && !Array.isArray(selectFile)) {
-      processUpload(await QiNiuApi.uploadFile(selectFile));
+      processUpload(selectFile, await QiNiuApi.uploadFile(selectFile));
     }
   }
-  const processUpload = (status: UploadStatus) => {
+  const processUpload = (path: string, status: UploadStatus) => {
     switch (status) {
       case UploadStatus.DirNotSupport:
         message.error("不支持上传文件夹");
@@ -62,8 +53,9 @@ function App() {
         message.error("文件已经上传");
         break;
       case UploadStatus.Uploading:
-        toast("Wow so easy!", { closeOnClick: false, closeButton: false, autoClose: false, });
-
+        const id = toast.info(<div className={styles.overflow}><Tooltip title={path}>上传中: {path}</Tooltip></div>, { closeOnClick: false, closeButton: false, autoClose: false, icon: "🚀" });
+        set(path, id);
+        break;
       default:
         break;
     }

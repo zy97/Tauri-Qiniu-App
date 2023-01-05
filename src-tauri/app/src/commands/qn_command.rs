@@ -138,8 +138,7 @@ pub async fn download(
         let download = download.insert(&connection).await.unwrap();
         download_manager
             .async_download(&file_info.key)
-            .await
-            .unwrap()
+            .await?
             .on_download_progress(move |e| {
                 let transferred_bytes = e.transferred_bytes() as f64;
                 let total_bytes = e.total_bytes().unwrap_or(transferred_bytes as u64) as f64;
@@ -156,10 +155,10 @@ pub async fn download(
                 Ok(())
             })
             .async_to_path(&file_path)
-            .await
-            .unwrap();
+            .await?;
 
         println!("下载完成: {}", file_path.display());
+        Ok::<(), TauriError>(())
     });
 
     Ok(())
@@ -217,50 +216,54 @@ pub async fn upload_file(
         path: Set(String::from(&file_path.display().to_string())),
     };
     let insert_result = upload.clone().insert(&connection).await.unwrap();
-    let credential = Credential::new(ACCESS_KEY, SECRET_KEY);
-    let upload_manager = UploadManager::builder(UploadTokenSigner::new_credential_provider(
-        credential,
-        BUCKET_NAME,
-        Duration::from_secs(3600),
-    ))
-    .build();
-    let mut uploader: AutoUploader = upload_manager.auto_uploader();
 
-    let params = AutoUploaderObjectParams::builder()
-        .object_name(file_path.file_name().unwrap().to_str().unwrap())
-        .file_name(file_path.file_name().unwrap().to_str().unwrap())
+    tokio::spawn(async move {
+        let credential = Credential::new(ACCESS_KEY, SECRET_KEY);
+        let upload_manager = UploadManager::builder(UploadTokenSigner::new_credential_provider(
+            credential,
+            BUCKET_NAME,
+            Duration::from_secs(3600),
+        ))
         .build();
-    let result = uploader
-        .on_upload_progress(move |e| {
-            let transferred_bytes = e.transferred_bytes() as f64;
-            let total_bytes = e.total_bytes().unwrap_or(transferred_bytes as u64) as f64;
-            window
-                .emit(
-                    "upload-progress",
-                    UploadInfo {
-                        data: insert_result.clone(),
-                        progress: transferred_bytes / total_bytes,
-                    },
-                )
-                .unwrap();
-            info!("已上传：{}/{}", total_bytes, transferred_bytes);
-            Ok(())
-        })
-        .async_upload_path(file_path, params)
-        .await?;
-    let key = result["key"].as_str();
-    let hask = result["hash"].as_str();
-    match key {
-        Some(key) => {
-            let hash = hask.unwrap();
-            upload.key = Set(Some(key.to_owned()));
-            upload.hash = Set(Some(hash.to_owned()));
-            upload.update(&connection).await?;
-        }
-        None => {}
-    }
+        let mut uploader: AutoUploader = upload_manager.auto_uploader();
 
-    info!("upload result: {:?}", result);
+        let params = AutoUploaderObjectParams::builder()
+            .object_name(file_path.file_name().unwrap().to_str().unwrap())
+            .file_name(file_path.file_name().unwrap().to_str().unwrap())
+            .build();
+        let result = uploader
+            .on_upload_progress(move |e| {
+                let transferred_bytes = e.transferred_bytes() as f64;
+                let total_bytes = e.total_bytes().unwrap_or(transferred_bytes as u64) as f64;
+                window
+                    .emit(
+                        "upload-progress",
+                        UploadInfo {
+                            data: insert_result.clone(),
+                            progress: transferred_bytes / total_bytes,
+                        },
+                    )
+                    .unwrap();
+                info!("已上传：{}/{}", total_bytes, transferred_bytes);
+                Ok(())
+            })
+            .async_upload_path(file_path, params)
+            .await?;
+        let key = result["key"].as_str();
+        let hask = result["hash"].as_str();
+        match key {
+            Some(key) => {
+                let hash = hask.unwrap();
+                upload.key = Set(Some(key.to_owned()));
+                upload.hash = Set(Some(hash.to_owned()));
+                upload.update(&connection).await?;
+            }
+            None => {}
+        }
+
+        info!("upload result: {:?}", result);
+        Ok::<(), TauriError>(())
+    });
 
     Ok(UploadStatus::Uploading)
 }
