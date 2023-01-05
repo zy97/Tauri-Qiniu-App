@@ -13,8 +13,7 @@ import { appWindow } from '@tauri-apps/api/window';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { dialog, event } from "@tauri-apps/api";
-const pages = [{ label: "10项", value: 10 }, { label: "20项", value: 20 }, { label: "50项", value: 50 }, { label: "100项", value: 100 }];
-const defaultPageSize = 10;
+
 function App() {
   //#region 上传相关
   useAsyncEffect(async function* () {
@@ -62,6 +61,8 @@ function App() {
   //#endregion
 
   //#region 下载相关
+  const pages = [{ label: "10项", value: 10 }, { label: "20项", value: 20 }, { label: "50项", value: 50 }, { label: "100项", value: 100 }];
+  const defaultPageSize = 10;
   const [open, setOpen] = useState(false);
   const [downloadNifityCount, setDownloadNifityCount] = useState(0)
   const [downloadPanelVisibility, setdownloadPanelVisibility, getDownloadPanelVisibility] = useGetState(false);
@@ -117,7 +118,7 @@ function App() {
       search({ query: txt, pageSize });
     }
   };
-  const { data: searchResult, run: search } = useRequest(QiNiuApi.getLists, {
+  const { data: searchResult, runAsync: search } = useRequest(QiNiuApi.getLists, {
     debounceWait: 50,
     manual: true,
     onSuccess: (res) => { message.success(`${res.length} 个文件查询成功`); }
@@ -147,8 +148,6 @@ function App() {
   const footerSize = useSize(footerRef);
   const extractHeight = 40 + (footerSize?.height ?? 0);
   const containerSize = useSize(containerRef);
-
-
   return (
     <div className={styles.container} ref={containerRef} >
       <Input className={styles.searchInput} size="large" placeholder="输入搜索的文件名字" prefix={<SearchOutlined />} onChange={searchQueryChanged} />
@@ -160,10 +159,8 @@ function App() {
       <div ref={footerRef} className={styles.footer}>
         <Space>
           <span>
-            <Badge count={downloadNifityCount} size="small" >
-              <Button icon={<UploadOutlined />} type="primary" onClick={showFilePickerWindow} >
-              </Button >
-            </Badge>
+            <Button icon={<UploadOutlined />} type="primary" onClick={showFilePickerWindow} >
+            </Button >
           </span>
           <span >
             <Badge count={downloadNifityCount} size="small" >
