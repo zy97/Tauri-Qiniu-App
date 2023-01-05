@@ -47,9 +47,9 @@ function InfiniteScrollList(props: Props) {
       <InfiniteScroll height={(containerHeight ?? 100) - extractHeight}
         dataLength={dataSource.length}
         next={loadMore}
-        hasMore={newItems !== undefined ? newItems.length == pageSize : true}
+        hasMore={newItems !== undefined ? (newItems.length != 0 ? newItems[newItems.length - 1].marker.length != 0 : false) : true}
         loader={< Skeleton avatar paragraph={{ rows: 1 }} active />}
-        endMessage={< Divider plain > It is all, nothing more 🤐</Divider >}>
+        endMessage={< Divider plain > 这就是全部了，没有更多了 🤐</Divider >}>
         <List
           dataSource={dataSource}
           renderItem={(item) => (

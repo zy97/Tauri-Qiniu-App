@@ -63,8 +63,6 @@ function App() {
   //#endregion
 
   //#region 下载相关
-  const pages = [{ label: "10项", value: 10 }, { label: "20项", value: 20 }, { label: "50项", value: 50 }, { label: "100项", value: 100 }];
-  const defaultPageSize = 10;
   const [open, setOpen] = useState(false);
   const [downloadNifityCount, setDownloadNifityCount] = useState(0)
   const [downloadPanelVisibility, setdownloadPanelVisibility, getDownloadPanelVisibility] = useGetState(false);
@@ -109,6 +107,8 @@ function App() {
   //#endregion
 
   //#region 获取文件列表相关
+  const pages = [{ label: "10项", value: 10 }, { label: "20项", value: 20 }, { label: "50项", value: 50 }, { label: "100项", value: 100 }, { label: "1000项", value: 1000 }];
+  const defaultPageSize = 10;
   const [pageSize, setPageSize] = useState<number>(defaultPageSize);
   const [searchTxt, setSearchTxt] = useState("");
   const [data, setData] = useState<QnFile[]>([]);
@@ -130,6 +130,7 @@ function App() {
     search({ marker, query: searchTxt, pageSize });
   }
   useEffect(() => {
+    console.log("查询结果", searchResult);
     if (searchResult) {
       const array = data;
       for (const item of searchResult) {
