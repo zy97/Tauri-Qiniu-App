@@ -5,7 +5,7 @@ export const getLists = (args?: { marker?: String, query?: String, pageSize?: nu
     return invoke<QnFile[]>("get_lists", args);
 }
 export const downloadFile = (file: QnFile) => {
-    return invoke<any>("download", { "fileInfo": file });
+    return invoke<any>("download", { file });
 }
 export const uploadFile = (filePath: string) => {
     return invoke<UploadStatus>("upload_file", { filePath });

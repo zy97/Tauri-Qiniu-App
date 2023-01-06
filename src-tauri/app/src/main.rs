@@ -4,6 +4,7 @@
 )]
 extern crate humansize;
 mod commands;
+mod repositories;
 use commands::qn_command::get_lists;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use std::{sync::Mutex, time::Duration};

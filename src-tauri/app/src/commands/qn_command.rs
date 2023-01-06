@@ -5,34 +5,36 @@ use crate::{
         qn_file::QnFile,
         upload_info::{UploadInfo, UploadStatus},
     },
+    repositories::{download_repository::*, upload_repository::*},
     DbConnection,
 };
 use chrono::Utc;
-use entity::{download, prelude::Downloads, prelude::Uploads, upload};
+use entity::{
+    download,
+    prelude::Uploads,
+    upload::{self, ActiveModel},
+};
 use futures::stream::TryStreamExt;
 use humansize::{format_size, DECIMAL};
 use qiniu_sdk::{
     credential::Credential,
     download::{DownloadManager, StaticDomainsUrlsGenerator},
     objects::ObjectsManager,
-    upload::{
-        AutoUploader, AutoUploaderObjectParams, UploadManager, UploadTokenSigner,
-        UploaderWithCallbacks,
-    },
+    upload::*,
 };
-use sea_orm::{
-    prelude::Uuid, ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, PaginatorTrait,
-    QueryFilter, QueryOrder, Set,
-};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use tauri::{AppHandle, State, Window};
 use tracing::{info, trace};
 const ACCESS_KEY: &str = "mElDt3TjoRM7iL5qpeZ15U4R9RGy3SBEqNTinKar";
 const SECRET_KEY: &str = "B5fcfvWOuQPZD0EKwVDvEfHk9FBcnRtgocxsMR1Q";
 const BUCKET_NAME: &str = "sc-download";
 const DOMAIN: &str = "download.yucunkeji.com";
+const DOWNLOADEVENT: &str = "download-progress";
+const UPLOADEVENT: &str = "upload-progress";
 use std::{
-    fs::{self, File},
+    fs::{self},
     path::{Path, PathBuf},
+    rc::Rc,
     time::Duration,
     vec,
 };
@@ -62,14 +64,7 @@ pub async fn get_lists(
         let size = format_size(entry.get_size_as_u64(), DECIMAL);
         let mime_type = entry.get_mime_type_as_str().to_owned();
         let marker = iter.marker().map(|s| s.to_string());
-        let downloaded = Downloads::find()
-            .filter(download::Column::Hash.eq(hash.clone()))
-            .filter(download::Column::Key.eq(key.clone()))
-            .filter(download::Column::MimeType.eq(mime_type.clone()))
-            .filter(download::Column::Size.eq(size.clone()))
-            .count(&connection)
-            .await?
-            > 0;
+        let downloaded = download_exist(&key, &hash, &mime_type, &size, &connection).await?;
 
         files.push(QnFile {
             key,
@@ -86,7 +81,7 @@ pub async fn get_lists(
 
 #[tauri::command]
 pub async fn download(
-    file_info: QnFile,
+    file: QnFile,
     app_handle: AppHandle,
     window: Window,
     state: State<'_, DbConnection>,
@@ -95,25 +90,23 @@ pub async fn download(
     let connection = state.db.lock().unwrap().clone();
 
     let mut hash_file_name = String::new();
-    let extension_name = file_info.key.rfind('.');
+    let extension_name = file.key.rfind('.');
 
     match extension_name {
         Some(index) => {
-            let base64 = base64::encode(&file_info.key[..index]);
+            let base64 = base64::encode(&file.key[..index]);
             hash_file_name += &base64;
-            hash_file_name += &file_info.key[index..];
+            hash_file_name += &file.key[index..];
         }
         None => {
-            hash_file_name += &base64::encode(&file_info.key);
+            hash_file_name += &base64::encode(&file.key);
         }
     }
     let file_path = app_dir.join(hash_file_name);
 
-    if Downloads::find()
-        .filter(download::Column::Path.eq(file_path.display().to_string()))
-        .count(&connection)
+    if download_find_by_path(file_path.display().to_string().as_str(), &connection)
         .await?
-        != 0
+        .is_some()
     {
         println!("缓存文件夹已存在: {}", file_path.display());
         return Ok(());
@@ -126,41 +119,36 @@ pub async fn download(
 
     // 如果不用spawn执行异步下载那么会出现stackoverflow异常
     tokio::spawn(async move {
-        let download = download::ActiveModel {
-            id: Set(Uuid::new_v4()),
-            key: Set(file_info.key.clone()),
-            hash: Set(file_info.hash),
-            size: Set(file_info.size),
-            mime_type: Set(file_info.mime_type),
-            path: Set(String::from(&file_path.display().to_string())),
-            download_date: Set(Utc::now()),
-        };
-        let download = download.insert(&connection).await.unwrap();
+        let download = download_insert(
+            &file.key,
+            &file.hash,
+            &file.mime_type,
+            &file.size,
+            &file_path.display().to_string().to_owned(),
+            &connection,
+        )
+        .await?;
         download_manager
-            .async_download(&file_info.key)
+            .async_download(&file.key)
             .await?
             .on_download_progress(move |e| {
                 let transferred_bytes = e.transferred_bytes() as f64;
                 let total_bytes = e.total_bytes().unwrap_or(transferred_bytes as u64) as f64;
-                window
-                    .emit(
-                        "download-progress",
-                        DownloadInfo {
-                            data: download.clone(),
-                            progress: transferred_bytes / total_bytes,
-                        },
-                    )
-                    .unwrap();
-                println!("已下载：{}/{}", total_bytes, transferred_bytes);
+                window.emit(
+                    DOWNLOADEVENT,
+                    DownloadInfo {
+                        data: download.clone(),
+                        progress: transferred_bytes / total_bytes,
+                    },
+                );
+                trace!("已下载：{}/{}", total_bytes, transferred_bytes);
                 Ok(())
             })
             .async_to_path(&file_path)
             .await?;
-
-        println!("下载完成: {}", file_path.display());
+        trace!("下载完成: {}", file_path.display());
         Ok::<(), TauriError>(())
     });
-
     Ok(())
 }
 
@@ -169,11 +157,7 @@ pub async fn get_download_files(
     state: State<'_, DbConnection>,
 ) -> Result<Vec<download::Model>, TauriError> {
     let db = state.db.lock().unwrap().clone();
-    let downloads = Downloads::find()
-        .order_by_desc(download::Column::DownloadDate)
-        .all(&db)
-        .await?;
-    Ok(downloads)
+    Ok(download_get_all(&db).await?)
 }
 #[tauri::command]
 pub async fn delete_download_file(
@@ -181,12 +165,9 @@ pub async fn delete_download_file(
     state: State<'_, DbConnection>,
 ) -> Result<(), TauriError> {
     let db = state.db.lock().unwrap().clone();
-    let id = data.id;
-    let file_path = data.path;
-    Downloads::delete_by_id(id).exec(&db).await?;
-    let file_path = Path::new(&file_path);
-    if file_path.exists() {
-        fs::remove_file(file_path)?;
+    download_delete_by_id(data.id, &db).await?;
+    if Path::new(&data.path).exists() {
+        fs::remove_file(data.path)?;
     }
     Ok(())
 }
@@ -201,22 +182,14 @@ pub async fn upload_file(
     if file_path.is_dir() {
         return Ok(UploadStatus::DirNotSupport);
     }
-    let uploaded = Uploads::find()
-        .filter(upload::Column::Path.eq(file_path.display().to_string()))
-        .count(&connection)
+    if upload_find_by_path(file_path.display().to_string().as_str(), &connection)
         .await?
-        != 0;
-    if uploaded {
+        .is_some()
+    {
         return Ok(UploadStatus::Uploaded);
     }
-    let mut upload = upload::ActiveModel {
-        id: Set(Uuid::new_v4()),
-        key: ActiveValue::NotSet,
-        hash: ActiveValue::NotSet,
-        path: Set(String::from(&file_path.display().to_string())),
-    };
-    let insert_result = upload.clone().insert(&connection).await.unwrap();
-
+    let insert_result = upload_insert(&file_path.display().to_string(), &connection).await?;
+    let updateModel = insert_result.clone();
     tokio::spawn(async move {
         let credential = Credential::new(ACCESS_KEY, SECRET_KEY);
         let upload_manager = UploadManager::builder(UploadTokenSigner::new_credential_provider(
@@ -235,16 +208,14 @@ pub async fn upload_file(
             .on_upload_progress(move |e| {
                 let transferred_bytes = e.transferred_bytes() as f64;
                 let total_bytes = e.total_bytes().unwrap_or(transferred_bytes as u64) as f64;
-                window
-                    .emit(
-                        "upload-progress",
-                        UploadInfo {
-                            data: insert_result.clone(),
-                            progress: transferred_bytes / total_bytes,
-                        },
-                    )
-                    .unwrap();
-                info!("已上传：{}/{}", total_bytes, transferred_bytes);
+                window.emit(
+                    UPLOADEVENT,
+                    UploadInfo {
+                        data: insert_result.clone(),
+                        progress: transferred_bytes / total_bytes,
+                    },
+                );
+                trace!("已上传：{}/{}", total_bytes, transferred_bytes);
                 Ok(())
             })
             .async_upload_path(file_path, params)
@@ -254,14 +225,12 @@ pub async fn upload_file(
         match key {
             Some(key) => {
                 let hash = hask.unwrap();
-                upload.key = Set(Some(key.to_owned()));
-                upload.hash = Set(Some(hash.to_owned()));
-                upload.update(&connection).await?;
+                upload_update_hash_key(updateModel, key, hash, &connection).await?;
             }
             None => {}
         }
 
-        info!("upload result: {:?}", result);
+        trace!("upload result: {:?}", result);
         Ok::<(), TauriError>(())
     });
 
@@ -277,14 +246,7 @@ pub async fn delete_file(
     let credential = Credential::new(ACCESS_KEY, SECRET_KEY);
     let object_manager = ObjectsManager::new(credential);
     let bucket = object_manager.bucket(BUCKET_NAME);
-    let upload = Uploads::find()
-        .filter(upload::Column::Key.eq(key))
-        .one(&connection)
-        .await?;
-    if let Some(data) = upload {
-        let data: upload::ActiveModel = data.into();
-        Uploads::delete(data).exec(&connection).await?;
-    }
+    upload_delete_by_key(key, &connection).await?;
     bucket.delete_object(key).async_call().await?;
     Ok(())
 }
