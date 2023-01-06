@@ -9,11 +9,7 @@ use crate::{
     DbConnection,
 };
 use chrono::Utc;
-use entity::{
-    download,
-    prelude::Uploads,
-    upload::{self, ActiveModel},
-};
+use entity::download;
 use futures::stream::TryStreamExt;
 use humansize::{format_size, DECIMAL};
 use qiniu_sdk::{
@@ -22,7 +18,6 @@ use qiniu_sdk::{
     objects::ObjectsManager,
     upload::*,
 };
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use tauri::{AppHandle, State, Window};
 use tracing::{info, trace};
 const ACCESS_KEY: &str = "mElDt3TjoRM7iL5qpeZ15U4R9RGy3SBEqNTinKar";
@@ -34,7 +29,6 @@ const UPLOADEVENT: &str = "upload-progress";
 use std::{
     fs::{self},
     path::{Path, PathBuf},
-    rc::Rc,
     time::Duration,
     vec,
 };
@@ -140,7 +134,7 @@ pub async fn download(
                         data: download.clone(),
                         progress: transferred_bytes / total_bytes,
                     },
-                );
+                )?;
                 trace!("已下载：{}/{}", total_bytes, transferred_bytes);
                 Ok(())
             })
@@ -189,7 +183,7 @@ pub async fn upload_file(
         return Ok(UploadStatus::Uploaded);
     }
     let insert_result = upload_insert(&file_path.display().to_string(), &connection).await?;
-    let updateModel = insert_result.clone();
+    let update_model = insert_result.clone();
     tokio::spawn(async move {
         let credential = Credential::new(ACCESS_KEY, SECRET_KEY);
         let upload_manager = UploadManager::builder(UploadTokenSigner::new_credential_provider(
@@ -214,7 +208,7 @@ pub async fn upload_file(
                         data: insert_result.clone(),
                         progress: transferred_bytes / total_bytes,
                     },
-                );
+                )?;
                 trace!("已上传：{}/{}", total_bytes, transferred_bytes);
                 Ok(())
             })
@@ -225,7 +219,7 @@ pub async fn upload_file(
         match key {
             Some(key) => {
                 let hash = hask.unwrap();
-                upload_update_hash_key(updateModel, key, hash, &connection).await?;
+                upload_update_hash_key(update_model, key, hash, &connection).await?;
             }
             None => {}
         }
