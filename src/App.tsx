@@ -13,32 +13,16 @@ import { appWindow } from '@tauri-apps/api/window';
 import { ToastContainer, toast, Id } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { dialog, event } from "@tauri-apps/api";
-//不用ahook的异步useeffect是因为，热更新之后会少执行一次清理，这就导致多次热更新会多次监听拖放事件
 
 function App() {
-  // useEffect(() => {
-  //   console.log('进入useEffect');
-  //   return () => {
-  //     console.log('清理useEffect');
-  //   };
-  // }, []);
-  useAsyncEffect(async function* () {
-    console.log('进入useAsyncEffect');
-    // const unlisten = setInterval(() => {
-    //   console.log('计时器还活着');
-    // }, 1000);
-    yield;
-    // clearInterval(unlisten);
-    console.log('清理useAsyncEffect');
-  }, []);
   //#region 上传相关
   const [map, { set, get }] = useMap<string, Id>();
-  useEffect(() => {
-    const unlistenDropFile = event.listen<string[]>(event.TauriEvent.WINDOW_FILE_DROP, async e => {
+  useAsyncEffect(async function* () {
+    const unlistenDropFile = await event.listen<string[]>(event.TauriEvent.WINDOW_FILE_DROP, async e => {
       const file = e.payload[0];
       processUpload(file, await QiNiuApi.uploadFile(file))
     });
-    const unlistenUploadProgress = appWindow.listen<UploadEventPayload>('upload-progress', (event) => {
+    const unlistenUploadProgress = await appWindow.listen<UploadEventPayload>('upload-progress', (event) => {
       const data = event.payload
       if (data.progress === 1) {
         const id = get(data.data.path)!;
@@ -48,10 +32,9 @@ function App() {
         toast.update(get(path)!, { progress: data.progress });
       }
     });
-    return (() => {
-      unlistenDropFile.then(e => e()).catch(err => console.log(err));
-      unlistenUploadProgress.then(e => e()).catch(err => console.log(err));
-    })
+    yield;
+    unlistenDropFile();
+    unlistenUploadProgress();
   }, [])
   const showFilePickerWindow = async () => {
     const selectFile = await dialog.open({});
@@ -94,11 +77,9 @@ function App() {
   const download = (item: QnFile) => {
     QiNiuApi.downloadFile(item);
   }
-  useEffect(() => {
-    const unlisten = appWindow.listen<DownloadEventPayload>('download-progress', (event) => {
+  useAsyncEffect(async function* () {
+    const unlisten = await appWindow.listen<DownloadEventPayload>('download-progress', (event) => {
       if (event.payload.progress === 1) {
-        console.log(JSON.stringify(event.payload.data))
-        console.log(getDownloadPanelVisibility());
         if (getDownloadPanelVisibility() === false) {
           setDownloadNifityCount((count) => count + 1);
         }
@@ -115,8 +96,8 @@ function App() {
         });
       }
     });
-    return (() => { unlisten.then(e => e()) });
-
+    yield;
+    unlisten();
   }, [])
   //#endregion
 
@@ -136,7 +117,7 @@ function App() {
     }
   };
   const { data: searchResult, runAsync: search } = useRequest(QiNiuApi.getLists, {
-    debounceWait: 1000,
+    debounceWait: 50,
     manual: true,
     onSuccess: (res) => { message.success(`${res.length} 个文件查询成功`); }
   });
