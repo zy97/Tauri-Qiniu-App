@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { SearchOutlined } from '@ant-design/icons';
 import { Drawer, Input, Select, message, Badge, Button, Space, Tooltip } from 'antd';
 import styles from "./App.module.less";
-import { useEventEmitter, useGetState, useMap, useRequest, useSize } from 'ahooks';
+import { useAsyncEffect, useDebounceEffect, useEventEmitter, useGetState, useMap, useRequest, useSize } from 'ahooks';
 import 'react-contexify/ReactContexify.css';
 import { DownloadEventPayload, QnFile, UploadEventPayload, UploadStatus } from './models/File';
 import { QiNiuApi } from './apis';
@@ -16,6 +16,21 @@ import { dialog, event } from "@tauri-apps/api";
 //不用ahook的异步useeffect是因为，热更新之后会少执行一次清理，这就导致多次热更新会多次监听拖放事件
 
 function App() {
+  // useEffect(() => {
+  //   console.log('进入useEffect');
+  //   return () => {
+  //     console.log('清理useEffect');
+  //   };
+  // }, []);
+  useAsyncEffect(async function* () {
+    console.log('进入useAsyncEffect');
+    // const unlisten = setInterval(() => {
+    //   console.log('计时器还活着');
+    // }, 1000);
+    yield;
+    // clearInterval(unlisten);
+    console.log('清理useAsyncEffect');
+  }, []);
   //#region 上传相关
   const [map, { set, get }] = useMap<string, Id>();
   useEffect(() => {
@@ -66,10 +81,9 @@ function App() {
   const [open, setOpen] = useState(false);
   const [downloadNifityCount, setDownloadNifityCount] = useState(0)
   const [downloadPanelVisibility, setdownloadPanelVisibility, getDownloadPanelVisibility] = useGetState(false);
-  const downloadPanelVisibilityEventEmitter$ = useEventEmitter<boolean>();
-  downloadPanelVisibilityEventEmitter$.useSubscription(visibility => {
+  const downloadPanelVisibilityHandler = (visibility: boolean) => {
     setdownloadPanelVisibility(visibility);
-  });
+  }
   const showDrawer = () => {
     setDownloadNifityCount(0);
     setOpen(true);
@@ -113,6 +127,7 @@ function App() {
   const [searchTxt, setSearchTxt] = useState("");
   const [data, setData] = useState<QnFile[]>([]);
   const searchQueryChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log(1)
     const txt = e.target.value;
     if (txt !== searchTxt) {
       setData([]);
@@ -121,7 +136,7 @@ function App() {
     }
   };
   const { data: searchResult, runAsync: search } = useRequest(QiNiuApi.getLists, {
-    debounceWait: 50,
+    debounceWait: 1000,
     manual: true,
     onSuccess: (res) => { message.success(`${res.length} 个文件查询成功`); }
   });
@@ -130,7 +145,6 @@ function App() {
     search({ marker, query: searchTxt, pageSize });
   }
   useEffect(() => {
-    console.log("查询结果", searchResult);
     if (searchResult) {
       const array = data;
       for (const item of searchResult) {
@@ -153,7 +167,7 @@ function App() {
   const extractHeight = 40 + (footerSize?.height ?? 0);
   return (
     <div className={styles.container} ref={containerRef} >
-      <Input className={styles.searchInput} size="large" placeholder="输入搜索的文件名字1" prefix={<SearchOutlined />} onChange={searchQueryChanged} />
+      <Input className={styles.searchInput} size="large" placeholder="输入搜索的文件名字" prefix={<SearchOutlined />} onChange={searchQueryChanged} />
       <div>
         <InfiniteScrollList dataSource={data} newItems={searchResult}
           containerHeight={containerSize?.height} extractHeight={extractHeight}
@@ -180,7 +194,7 @@ function App() {
         </Space>
       </div>
       <Drawer title="下载" placement="right" onClose={onCloseDrawer} open={open} size="large">
-        <DownloadPanel downloadPanelVisibilityEventEmitter={downloadPanelVisibilityEventEmitter$} />
+        <DownloadPanel downloadPanelVisibilityNotify={downloadPanelVisibilityHandler} />
       </Drawer>
       <ToastContainer />
     </div >

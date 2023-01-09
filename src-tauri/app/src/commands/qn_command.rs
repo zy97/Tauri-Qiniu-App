@@ -41,7 +41,6 @@ pub async fn get_lists(
 ) -> Result<Vec<QnFile>, TauriError> {
     let connection = state.db.lock().unwrap().clone();
     info!("marker:{marker:?}, query:{query:?}, page_size:{page_size:?}");
-    info!("{}", Utc::now());
     let mut files = vec![];
     let credential = Credential::new(ACCESS_KEY, SECRET_KEY);
     let object_manager = ObjectsManager::new(credential);

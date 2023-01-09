@@ -13,16 +13,16 @@ import { DeleteOutlined } from '@ant-design/icons';
 import { app } from '@tauri-apps/api';
 
 interface Props {
-    downloadPanelVisibilityEventEmitter: EventEmitter<boolean>
+    downloadPanelVisibilityNotify: (visibility: boolean) => void
 }
 function DownloadPanel(props: Props) {
-    const { downloadPanelVisibilityEventEmitter } = props;
+    const { downloadPanelVisibilityNotify } = props;
     const ref = useRef(null);
     const [list, setList] = useState<Download[]>();
     const [map, { set }] = useMap<string, number>();
     const [inViewport] = useInViewport(ref);
     useEffect(() => {
-        downloadPanelVisibilityEventEmitter.emit(true);
+        downloadPanelVisibilityNotify(true);
         const unlisten = appWindow.listen<DownloadEventPayload>('download-progress', (event) => {
             const key = JSON.stringify(event.payload.data);
             const value = Math.round(event.payload.progress * 100);
@@ -34,7 +34,7 @@ function DownloadPanel(props: Props) {
                 e();
                 console.log("取消监听");
             });
-            downloadPanelVisibilityEventEmitter.emit(false);
+            downloadPanelVisibilityNotify(false);
         })
     }, [])
     const { data: searchResult, run: search } = useRequest(QiNiuApi.getdownloadLists, {
